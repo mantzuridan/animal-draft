@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4cb8f5">
+<title>Animal Draft</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky1:#7fd3ff; --sky2:#c9f0ff; --grass:#7ed957; --grass-d:#4fa83a;
+  --ink:#24324a; --muted:#6b7a92; --card:#ffffff; --line:#e3ecf5;
+  --you:#2f8cff; --you-l:#e3f0ff; --bot:#ff7a45; --bot-l:#ffeadf;
+  --gold:#ffc83d; --good:#2fbf71; --bad:#ef5b5b;
+  --r:20px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Fredoka",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--ink);
+  background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 55%,#e9fbe0 100%) fixed;
+  background-color:var(--sky2);
+  touch-action:manipulation; user-select:none; -webkit-user-select:none;
+}
+#app{max-width:480px;margin:0 auto;min-height:100%;padding:max(14px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.screen{display:none;flex:1;flex-direction:column;gap:12px}
+.screen.on{display:flex}
+h1{font-size:44px;margin:0;font-weight:700;letter-spacing:.5px;color:#fff;text-shadow:0 3px 0 #2a8fd0,0 6px 14px rgba(0,0,0,.15)}
+h2{margin:0;font-size:22px;font-weight:600}
+.card{background:var(--card);border-radius:var(--r);padding:14px;box-shadow:0 4px 0 rgba(36,50,74,.08),0 8px 24px rgba(36,50,74,.08)}
+.btn{font:inherit;font-weight:600;font-size:19px;border:0;border-radius:16px;padding:14px 18px;cursor:pointer;color:#fff;background:var(--you);box-shadow:0 4px 0 #1d68c4;transition:transform .06s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1d68c4}
+.btn.green{background:var(--good);box-shadow:0 4px 0 #1f8f53}
+.btn.orange{background:var(--bot);box-shadow:0 4px 0 #cc5525}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:0 4px 0 #cfdbe8}
+.btn.small{font-size:15px;padding:9px 12px;border-radius:12px}
+.btn:disabled{opacity:.4;pointer-events:none}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1}
+.center{text-align:center}
+.muted{color:var(--muted)}
+
+/* Home */
+#home{justify-content:center;align-items:stretch;text-align:center;gap:16px}
+.parade{font-size:40px;line-height:1.2;letter-spacing:4px}
+.parade span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tag{font-size:18px;color:#1f5f8a;margin-top:-6px}
+.sports-strip{display:flex;justify-content:space-around;font-size:13px;color:var(--muted)}
+.sports-strip div{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sports-strip b{font-size:26px;font-weight:400}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;gap:8px}
+.topbar .title{flex:1;font-weight:600;font-size:18px;color:#1f5f8a}
+.iconbtn{font:inherit;border:0;background:rgba(255,255,255,.75);border-radius:12px;width:38px;height:38px;font-size:18px;cursor:pointer;color:var(--ink)}
+
+/* Draft */
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.side{border-radius:16px;padding:10px;background:#fff;border:3px solid transparent;transition:border-color .2s}
+.side.you{background:var(--you-l)} .side.bot{background:var(--bot-l)}
+.side.active.you{border-color:var(--you)} .side.active.bot{border-color:var(--bot)}
+.side .who{font-weight:600;font-size:15px;display:flex;justify-content:space-between}
+.coins{font-weight:700}
+.team{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:6px}
+.slot{aspect-ratio:1;border-radius:8px;background:rgba(255,255,255,.8);display:grid;place-items:center;font-size:clamp(15px,4.6vw,22px);border:2px dashed rgba(36,50,74,.15)}
+.slot.f{border:0;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.stage{text-align:center;padding:18px 14px 16px;position:relative}
+.stage .counter{position:absolute;top:10px;left:14px;font-size:13px;color:var(--muted)}
+.big-emoji{font-size:96px;line-height:1.1}
+.pop{animation:pop .35s cubic-bezier(.3,1.6,.6,1)}
+@keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+.aname{font-size:28px;font-weight:700;margin-top:2px}
+.bidline{margin-top:10px;font-size:18px;min-height:27px}
+.bidline b{font-size:22px}
+.status{min-height:24px;text-align:center;font-weight:500;font-size:17px}
+.timer{height:10px;background:#e7eef6;border-radius:6px;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:var(--good);border-radius:6px;transform-origin:left;transition:background .3s}
+.timer.warn i{background:var(--bad)}
+.controls{display:grid;gap:10px}
+.controls .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.picker{display:none;align-items:center;gap:8px;background:#fff;border-radius:16px;padding:8px}
+.picker.on{display:flex}
+.picker .val{flex:1;text-align:center;font-size:28px;font-weight:700}
+.step{font:inherit;width:48px;height:48px;border-radius:14px;border:0;background:#eef4fa;font-size:26px;font-weight:700;color:var(--ink);cursor:pointer}
+.toast{position:fixed;left:50%;top:22%;transform:translate(-50%,-10px) scale(.9);opacity:0;pointer-events:none;background:#fff;border-radius:18px;padding:14px 20px;font-size:19px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.18);transition:all .25s;text-align:center;max-width:88vw;z-index:20}
+.toast.on{opacity:1;transform:translate(-50%,0) scale(1)}
+
+/* Assign */
+.sport-slots{display:grid;gap:8px}
+.sslot{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:8px 10px;border:3px solid transparent;cursor:pointer;min-height:62px}
+.sslot.target{border-color:var(--you);background:var(--you-l)}
+.sslot .sicon{font-size:28px;width:40px;text-align:center}
+.sslot .sname{flex:1;font-weight:600}
+.sslot .who{display:flex;align-items:center;gap:6px;font-weight:600}
+.sslot .who .e{font-size:30px}
+.sslot .empty{color:var(--muted);font-size:14px;border:2px dashed #cfdbe8;border-radius:12px;padding:6px 10px}
+.tray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:84px}
+.chip{background:#fff;border-radius:16px;padding:6px 4px;width:76px;text-align:center;cursor:pointer;border:3px solid transparent;box-shadow:0 3px 0 #d7e2ee}
+.chip .e{font-size:34px;line-height:1.1}
+.chip .n{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.sel{border-color:var(--you);transform:translateY(-3px)}
+.hint{font-size:14px;text-align:center;color:var(--muted)}
+
+/* Results */
+.res-list{display:grid;gap:8px}
+.res{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;background:#fff;border-radius:16px;padding:8px 10px;opacity:0;transform:translateY(10px);transition:all .35s}
+.res.show{opacity:1;transform:none}
+.res .mid{text-align:center;font-size:13px;color:var(--muted);min-width:78px}
+.res .mid b{display:block;font-size:24px;font-weight:400}
+.res .a{display:flex;flex-direction:column;align-items:center;border-radius:12px;padding:4px;border:3px solid transparent}
+.res .a .e{font-size:32px;line-height:1.1}
+.res .a .n{font-size:12px;font-weight:600}
+.res .a.win.you{border-color:var(--you);background:var(--you-l)}
+.res .a.win.bot{border-color:var(--bot);background:var(--bot-l)}
+.res .a.lose{opacity:.45}
+.close{font-size:11px;font-weight:700;color:#b8860b;background:#fff4cc;border-radius:8px;padding:1px 6px;margin-top:2px;display:inline-block}
+.score{font-size:40px;font-weight:700;text-align:center}
+.score .y{color:var(--you)} .score .b{color:var(--bot)}
+.banner{text-align:center;font-size:30px;font-weight:700;min-height:42px}
+.res-labels{display:grid;grid-template-columns:1fr auto 1fr;font-weight:600;font-size:14px;text-align:center}
+.res-labels span:first-child{color:var(--you)} .res-labels span:last-child{color:var(--bot)}
+.res-labels span:nth-child(2){min-width:78px}
+
+/* Stats / rules */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#fff;border-radius:16px;padding:14px;text-align:center}
+.stat b{display:block;font-size:36px}
+.stat span{color:var(--muted);font-size:14px}
+.rules p{margin:0 0 10px;line-height:1.4}
+.rules p:last-child{margin:0}
+
+.confetti{position:fixed;top:-20px;font-size:26px;pointer-events:none;animation:fall linear forwards;z-index:30}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen on">
+    <div class="parade" aria-hidden="true"><span>🦁</span><span style="animation-delay:.3s">🐘</span><span style="animation-delay:.6s">🦘</span><span style="animation-delay:.9s">🐬</span><span style="animation-delay:1.2s">🦒</span></div>
+    <h1>Animal Draft</h1>
+    <div class="tag">Build your animal team. Beat the bot.</div>
+    <div class="card sports-strip" id="homeSports"></div>
+    <button class="btn green" id="playBtn">▶ Play</button>
+    <div class="row">
+      <button class="btn ghost grow" id="statsBtn">📊 Stats</button>
+      <button class="btn ghost grow" id="rulesBtn">📖 Rules</button>
+    </div>
+  </section>
+
+  <!-- DRAFT -->
+  <section id="draft" class="screen">
+    <div class="topbar"><div class="title">🏟️ The Draft</div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
+    <div class="sides">
+      <div class="side you" id="sideYou"><div class="who"><span>You</span><span class="coins" id="coinsYou"></span></div><div class="team" id="teamYou"></div></div>
+      <div class="side bot" id="sideBot"><div class="who"><span>🤖 Bot</span><span class="coins" id="coinsBot"></span></div><div class="team" id="teamBot"></div></div>
+    </div>
+    <div class="card stage">
+      <div class="counter" id="counter"></div>
+      <div class="big-emoji" id="aEmoji"></div>
+      <div class="aname" id="aName"></div>
+      <div class="bidline" id="bidLine"></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="timer" id="timer"><i id="timerBar"></i></div>
+    <div class="controls" id="controls">
+      <div class="two">
+        <button class="btn" id="plusBtn">+1</button>
+        <button class="btn ghost" id="chooseBtn">Choose…</button>
+      </div>
+      <div class="picker" id="picker">
+        <button class="step" id="minusStep">−</button>
+        <div class="val" id="pickVal">1</div>
+        <button class="step" id="plusStep">+</button>
+        <button class="btn small" id="pickBid">Bid</button>
+      </div>
+      <button class="btn orange" id="passBtn">Pass</button>
+    </div>
+    <div class="controls" id="richControls" style="display:none">
+      <div class="two">
+        <button class="btn" id="buyBtn">Buy for 1 🪙</button>
+        <button class="btn orange" id="letBtn">Let it go</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASSIGN -->
+  <section id="assign" class="screen">
+    <div class="topbar"><div class="title">📋 Pick your athletes</div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
+    <div class="hint">Tap an animal, then tap a sport. The bot is choosing in secret too.</div>
+    <div class="timer" id="atimer"><i id="atimerBar"></i></div>
+    <div class="sport-slots" id="sportSlots"></div>
+    <div class="tray" id="tray"></div>
+    <button class="btn green" id="confirmBtn" disabled>Start the games!</button>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="screen">
+    <div class="topbar"><div class="title">🏅 Results</div></div>
+    <div class="score" id="scoreLine"><span class="y">0</span> – <span class="b">0</span></div>
+    <div class="res-labels"><span>You</span><span></span><span>🤖 Bot</span></div>
+    <div class="res-list" id="resList"></div>
+    <div class="banner" id="banner"></div>
+    <div class="row" id="resBtns" style="visibility:hidden">
+      <button class="btn ghost grow" id="homeBtn">Home</button>
+      <button class="btn green grow" id="againBtn">Play again</button>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="stats" class="screen">
+    <div class="topbar"><div class="title">📊 Your stats</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
+    <div class="stats">
+      <div class="stat"><b id="stGames">0</b><span>Games played</span></div>
+      <div class="stat"><b id="stWins">0</b><span>Wins</span></div>
+      <div class="stat"><b id="stStreak">0</b><span>Current win streak</span></div>
+      <div class="stat"><b id="stBest">0</b><span>Best win streak</span></div>
+    </div>
+    <div class="grow"></div>
+    <button class="btn ghost" id="resetBtn">Reset stats</button>
+  </section>
+
+  <!-- RULES -->
+  <section id="rules" class="screen">
+    <div class="topbar"><div class="title">📖 How to play</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
+    <div class="card rules">
+      <p><b>1. The draft.</b> You and the bot each have <b>20 coins</b>. Animals come up one at a time and you bid for them. Whoever opens must bid at least 1. Raise by 1 or choose your own amount. Whoever passes loses the animal; the highest bidder pays.</p>
+      <p><b>2. Secret skills.</b> Every animal has a hidden score in each sport. Use what you know about animals!</p>
+      <p><b>3. Out of coins?</b> You lose your turns. The bot may buy each new animal for 1 coin, or it goes to you for free. When one team has 5 animals, the other team gets random ones.</p>
+      <p><b>4. Pick your athletes.</b> Put one animal in each of the 5 sports. You have 90 seconds, and the bot picks in secret.</p>
+      <p><b>5. The games.</b> Each sport is your animal vs the bot's. Higher score wins; a tie is a coin flip. Win 3 sports to win the game!</p>
+      <p class="muted">Don't wait too long: after 20 seconds the game bids +1 for you.</p>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------- Data ---------- */
+const SPORTS = [
+  {key:"sprint", name:"100m Sprint", icon:"🏃"},
+  {key:"swim",   name:"Swimming",    icon:"🏊"},
+  {key:"lift",   name:"Weightlifting", icon:"🏋️"},
+  {key:"jump",   name:"High Jump",   icon:"⬆️"},
+  {key:"jav",    name:"Javelin",     icon:"🎯"},
+];
+// [name, emoji, sprint, swim, lift, highJump, javelin]
+const ANIMALS = [
+  ["Cheetah","🐆",10,3,4,6,4],["Lion","🦁",10,4,7,8,7],["Tiger","🐅",8,5,8,10,8],["Puma","🐆",9,3,5,10,5],
+  ["Jaguar","🐆",9,5,6,7,6],["Wolf","🐺",8,5,3,6,3],["Fox","🦊",7,4,1,6,1],["Grizzly Bear","🐻",8,5,9,3,9],
+  ["Polar Bear","🐻‍❄️",6,6,9,3,9],["Panda","🐼",5,3,5,2,5],["Elephant","🐘",6,3,10,1,10],["Rhino","🦏",7,2,10,1,9],
+  ["Hippo","🦛",5,6,10,1,7],["Giraffe","🦒",8,2,6,2,10],["Zebra","🦓",9,3,5,5,8],["Horse","🐎",9,4,7,7,8],
+  ["Camel","🐫",9,2,7,3,6],["Moose","🫎",8,6,8,6,8],["Bison","🦬",8,4,9,6,9],["Kangaroo","🦘",9,4,5,9,8],
+  ["Gorilla","🦍",6,1,8,4,8],["Chimpanzee","🐒",6,1,6,5,7],["Ostrich","🐦",9,3,4,6,8],["Eagle","🦅",2,2,2,5,4],
+  ["Penguin","🐧",2,9,2,6,3],["Crocodile","🐊",4,8,7,5,7],["Tortoise","🐢",1,1,3,1,1],["Rabbit","🐇",8,3,1,5,2],
+  ["Frog","🐸",2,4,1,4,1],["Otter","🦦",5,6,2,3,2],["Sea Lion","🦭",5,9,5,6,4],["Dolphin","🐬",1,10,4,10,8],
+  ["Shark","🦈",1,10,6,9,7],["Impala","🦌",10,3,2,9,3],["Mountain Goat","🐐",5,2,4,8,6],["Wild Boar","🐗",7,4,6,5,6],
+  ["Sloth","🦥",1,2,3,1,2],["Squirrel","🐿️",5,2,1,6,1],["Honey Badger","🦡",5,3,3,3,4],["Komodo Dragon","🦎",4,4,5,1,5],
+].map(([name,emoji,...s],id)=>({id,name,emoji,s,avg:s.reduce((a,b)=>a+b,0)/5}));
+
+const RULES = {budget:20, teamSize:5, bidSecs:20, assignSecs:90, botFactor:1.4, botBrokeBuyAvg:5, botAssignMin:7, autoAssignMin:5};
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const other = side => side==="you" ? "bot" : "you";
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+let toastT;
+function toast(msg, ms=1500){ const t=$("toast"); t.innerHTML=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),ms); }
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id)); window.scrollTo(0,0); }
+
+/* ---------- Stats (localStorage, optional) ---------- */
+const STATS_KEY="animalDraft.stats";
+function loadStats(){ try{ const v=JSON.parse(localStorage.getItem(STATS_KEY)); if(v && typeof v.games==="number") return v; }catch(e){} return {games:0,wins:0,streak:0,best:0}; }
+function saveStats(s){ try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){} }
+function renderStats(){ const s=loadStats(); $("stGames").textContent=s.games; $("stWins").textContent=s.wins; $("stStreak").textContent=s.streak; $("stBest").textContent=s.best; }
+
+/* ---------- Timer ---------- */
+let timerId=null;
+function startTimer(barId, wrapId, secs, onDone){
+  stopTimer();
+  const bar=$(barId), wrap=$(wrapId), end=Date.now()+secs*1000;
+  wrap.style.visibility="visible";
+  const tick=()=>{
+    const left=Math.max(0,end-Date.now());
+    bar.style.transform=`scaleX(${left/(secs*1000)})`;
+    wrap.classList.toggle("warn", left<5000);
+    if(left<=0){ stopTimer(); onDone(); }
+  };
+  tick(); timerId=setInterval(tick,100);
+}
+function stopTimer(){ if(timerId){clearInterval(timerId); timerId=null;} }
+function hideTimer(wrapId){ stopTimer(); $(wrapId).style.visibility="hidden"; }
+
+/* ---------- Game state ---------- */
+let G=null;      // current game
+let gameToken=0; // invalidates pending bot actions after quitting
+
+function newGame(){
+  gameToken++;
+  G={
+    token:gameToken,
+    pool:shuffle(ANIMALS.slice()),
+    you:{coins:RULES.budget, team:[]},
+    bot:{coins:RULES.budget, team:[]},
+    nextOpener: Math.random()<.5 ? "you" : "bot",
+    shown:0,
+    cur:null, // {animal, mode, bid, leader, turn}
+    busy:false,
+  };
+  show("draft");
+  renderDraft();
+  nextAnimal();
+}
+const alive = t => G && G.token===t;
+const full = side => G[side].team.length>=RULES.teamSize;
+
+function renderDraft(){
+  for(const side of ["you","bot"]){
+    const S=side==="you"?"You":"Bot";
+    $("coins"+S).textContent=G[side].coins+" 🪙";
+    const t=$("team"+S); t.innerHTML="";
+    for(let i=0;i<RULES.teamSize;i++){
+      const a=G[side].team[i]; const d=document.createElement("div");
+      d.className="slot"+(a?" f":""); if(a){d.textContent=a.emoji; d.title=a.name;}
+      t.appendChild(d);
+    }
+  }
+  const c=G.cur;
+  $("sideYou").classList.toggle("active", !!c && c.turn==="you");
+  $("sideBot").classList.toggle("active", !!c && c.turn==="bot");
+  if(c){
+    $("bidLine").innerHTML = c.mode==="auction"
+      ? (c.bid>0 ? `${c.leader==="you"?"You":"🤖 Bot"} bid <b>${c.bid} 🪙</b>` : `<span class="muted">${c.turn==="you"?"You open":"Bot opens"} the bidding</span>`)
+      : "";
+  }
+}
+
+function setControls(kind){ // 'auction' | 'rich' | 'none'
+  $("controls").style.display = kind==="auction" ? "grid" : "none";
+  $("richControls").style.display = kind==="rich" ? "grid" : "none";
+  $("picker").classList.remove("on");
+}
+
+async function nextAnimal(){
+  const t=G.token;
+  G.cur=null; setControls("none"); hideTimer("timer");
+  if(full("you") && full("bot")) return startAssign();
+  // One team is full -> the other gets random animals
+  if(full("you") || full("bot")){
+    const side = full("you") ? "bot" : "you";
+    $("status").textContent = side==="you" ? "Bot's team is full — you get random animals!" : "Your team is full — the bot gets random animals.";
+    while(!full(side)){
+      await sleep(900); if(!alive(t)) return;
+      const a=G.pool.pop(); G.shown++;
+      showAnimal(a);
+      G[side].team.push(a); renderDraft();
+    }
+    await sleep(1300); if(!alive(t)) return;
+    return startAssign();
+  }
+  const a=G.pool.pop(); G.shown++;
+  const opener=G.nextOpener; G.nextOpener=other(opener);
+  showAnimal(a);
+  const yc=G.you.coins>0, bc=G.bot.coins>0;
+  if(yc && bc){
+    G.cur={animal:a, mode:"auction", bid:0, leader:null, turn:opener};
+    await sleep(500); if(!alive(t)) return;
+    takeTurn();
+  } else if(yc || bc){
+    const rich = yc ? "you" : "bot";
+    G.cur={animal:a, mode:"rich", rich, turn:rich};
+    renderDraft();
+    if(rich==="you"){
+      $("status").textContent="Bot is out of coins. Buy it for 1, or it goes to the bot.";
+      setControls("rich");
+      startTimer("timerBar","timer",RULES.bidSecs,()=>richDecision("you",true));
+    } else {
+      $("status").textContent="You're out of coins — the bot decides…";
+      await sleep(1300); if(!alive(t)) return;
+      richDecision("bot", a.avg>=RULES.botBrokeBuyAvg);
+    }
+  } else {
+    // Nobody has coins: the team with fewer animals gets it for free
+    const yl=G.you.team.length, bl=G.bot.team.length;
+    const side = yl<bl ? "you" : bl<yl ? "bot" : (Math.random()<.5?"you":"bot");
+    G.cur={animal:a, mode:"free", turn:null};
+    $("status").textContent="No coins left on either side…";
+    await sleep(1000); if(!alive(t)) return;
+    award(side, 0);
+  }
+}
+
+function showAnimal(a){
+  const e=$("aEmoji"); e.textContent=a.emoji; e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop");
+  $("aName").textContent=a.name;
+  $("counter").textContent="Animal #"+G.shown;
+  $("bidLine").innerHTML="";
+}
+
+function takeTurn(){
+  const c=G.cur; renderDraft();
+  if(c.turn==="you"){
+    const min=c.bid+1;
+    $("status").textContent = c.bid===0 ? "Your turn — open with at least 1" : "Your turn — raise or pass";
+    setControls("auction");
+    $("plusBtn").textContent = `+1  (bid ${min})`;
+    $("plusBtn").disabled = min>G.you.coins;
+    $("chooseBtn").disabled = min>G.you.coins;
+    $("passBtn").disabled = c.bid===0; // the opener can't pass
+    pickVal=Math.min(min,G.you.coins); renderPick();
+    startTimer("timerBar","timer",RULES.bidSecs,()=>{
+      const n=G.cur.bid+1;
+      if(n<=G.you.coins){ toast("⏰ Time's up — auto bid "+n); bid("you",n); }
+      else { toast("⏰ Time's up — not enough coins, pass"); pass("you"); }
+    });
+  } else {
+    setControls("none"); hideTimer("timer");
+    $("status").textContent="🤖 Bot is thinking…";
+    const t=G.token;
+    setTimeout(()=>{ if(alive(t) && G.cur && G.cur.turn==="bot") botBid(); }, 900+Math.random()*700);
+  }
+}
+
+function botBid(){
+  const c=G.cur, a=c.animal;
+  const max=Math.min(Math.floor(a.avg*RULES.botFactor), G.bot.coins);
+  if(c.bid===0) return bid("bot",1);          // opener must bid at least 1
+  if(c.bid+1<=max) return bid("bot",c.bid+1);
+  pass("bot");
+}
+
+function bid(side, amount){
+  const c=G.cur;
+  if(!c || c.mode!=="auction" || c.turn!==side) return;
+  if(amount<=c.bid || amount>G[side].coins) return;
+  stopTimer();
+  c.bid=amount; c.leader=side; c.turn=other(side);
+  takeTurn();
+}
+
+function pass(side){
+  const c=G.cur;
+  if(!c || c.mode!=="auction" || c.turn!==side || c.bid===0) return;
+  stopTimer();
+  c.turn=null;
+  award(c.leader, c.bid);
+}
+
+function richDecision(side, buy){
+  const c=G.cur;
+  if(!c || c.mode!=="rich" || c.rich!==side) return;
+  stopTimer();
+  c.turn=null;
+  if(buy) award(side,1); else award(other(side),0);
+}
+
+async function award(side, price){
+  const t=G.token, c=G.cur;
+  setControls("none"); hideTimer("timer");
+  G[side].coins-=price; G[side].team.push(c.animal);
+  renderDraft();
+  const who = side==="you" ? "You got" : "🤖 Bot got";
+  const cost = price>0 ? ` for ${price} 🪙` : " for free";
+  $("status").textContent = `${who} the ${c.animal.name}${cost}!`;
+  await sleep(1500); if(!alive(t)) return;
+  nextAnimal();
+}
+
+/* Custom bid picker */
+let pickVal=1;
+function renderPick(){ $("pickVal").textContent=pickVal; }
+$("chooseBtn").onclick=()=>{ $("picker").classList.toggle("on"); };
+$("minusStep").onclick=()=>{ pickVal=Math.max(G.cur.bid+1,pickVal-1); renderPick(); };
+$("plusStep").onclick=()=>{ pickVal=Math.min(G.you.coins,pickVal+1); renderPick(); };
+$("pickBid").onclick=()=>bid("you",pickVal);
+$("plusBtn").onclick=()=>bid("you",G.cur.bid+1);
+$("passBtn").onclick=()=>pass("you");
+$("buyBtn").onclick=()=>richDecision("you",true);
+$("letBtn").onclick=()=>richDecision("you",false);
+
+/* ---------- Assignment ---------- */
+// Fill empty sports in order: for each sport, take the first remaining animal (purchase order)
+// scoring >= min; if none qualifies, take the last remaining animal.
+function autoAssign(team, min, preset){
+  const plan = preset ? preset.slice() : Array(SPORTS.length).fill(null);
+  const left = team.filter(a=>!plan.includes(a));
+  SPORTS.forEach((sp,i)=>{
+    if(plan[i]) return;
+    let pick = left.find(a=>a.s[i]>=min) || left[left.length-1];
+    plan[i]=pick; left.splice(left.indexOf(pick),1);
+  });
+  return plan;
+}
+
+let A=null; // {plan:[animal|null x5], selected:animal|null}
+function startAssign(){
+  G.cur=null; setControls("none"); hideTimer("timer");
+  G.botPlan = autoAssign(G.bot.team, RULES.botAssignMin);
+  A={plan:Array(SPORTS.length).fill(null), selected:null};
+  show("assign"); renderAssign();
+  const t=G.token;
+  startTimer("atimerBar","atimer",RULES.assignSecs,()=>{
+    if(!alive(t)) return;
+    A.plan=autoAssign(G.you.team, RULES.autoAssignMin, A.plan);
+    renderAssign(); toast("⏰ Time's up — auto-assigned!");
+    setTimeout(()=>{ if(alive(t)) startResults(); }, 1200);
+  });
+}
+function renderAssign(){
+  const slots=$("sportSlots"); slots.innerHTML="";
+  SPORTS.forEach((sp,i)=>{
+    const a=A.plan[i]; const d=document.createElement("div");
+    d.className="sslot"+(A.selected && !a ? " target":"");
+    d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
+      (a ? `<div class="who"><span class="e">${a.emoji}</span><span>${a.name}</span></div>` : `<div class="empty">empty</div>`);
+    d.onclick=()=>{
+      if(A.selected){
+        const prev=A.plan[i]; const from=A.plan.indexOf(A.selected);
+        if(from>=0) A.plan[from]=prev; // swap if moving a placed animal
+        A.plan[i]=A.selected; A.selected=null;
+      } else if(a){ A.plan[i]=null; }
+      renderAssign();
+    };
+    slots.appendChild(d);
+  });
+  const tray=$("tray"); tray.innerHTML="";
+  G.you.team.filter(a=>!A.plan.includes(a)).forEach(a=>{
+    const c=document.createElement("div");
+    c.className="chip"+(A.selected===a?" sel":"");
+    c.innerHTML=`<div class="e">${a.emoji}</div><div class="n">${a.name}</div>`;
+    c.onclick=()=>{ A.selected = A.selected===a ? null : a; renderAssign(); };
+    tray.appendChild(c);
+  });
+  if(!tray.children.length) tray.innerHTML=`<div class="hint" style="align-self:center">All set! Tap a sport to swap.</div>`;
+  $("confirmBtn").disabled = A.plan.some(x=>!x);
+}
+$("confirmBtn").onclick=()=>{ if(!A.plan.some(x=>!x)){ hideTimer("atimer"); startResults(); } };
+
+/* ---------- Results ---------- */
+async function startResults(){
+  hideTimer("atimer");
+  const t=G.token;
+  show("results");
+  const list=$("resList"); list.innerHTML=""; $("banner").textContent=""; $("resBtns").style.visibility="hidden";
+  let ys=0, bs=0; setScore(0,0);
+  for(let i=0;i<SPORTS.length;i++){
+    const sp=SPORTS[i], ya=A.plan[i], ba=G.botPlan[i];
+    const yv=ya.s[i], bv=ba.s[i];
+    let winner = yv>bv ? "you" : bv>yv ? "bot" : (Math.random()<.5?"you":"bot");
+    const close = yv===bv;
+    const row=document.createElement("div"); row.className="res";
+    const cell=(a,side)=>`<div class="a ${side} ${winner===side?"win":"lose"}"><span class="e">${a.emoji}</span><span class="n">${a.name}</span></div>`;
+    row.innerHTML = cell(ya,"you") + `<div class="mid"><b>${sp.icon}</b>${sp.name}${close?'<br><span class="close">Close match!</span>':""}</div>` + cell(ba,"bot");
+    list.appendChild(row);
+    await sleep(80); if(!alive(t)) return;
+    row.classList.add("show");
+    await sleep(close?1300:950); if(!alive(t)) return;
+    winner==="you" ? ys++ : bs++;
+    setScore(ys,bs);
+  }
+  const won = ys>bs;
+  const s=loadStats(); s.games++; if(won){ s.wins++; s.streak++; s.best=Math.max(s.best,s.streak); } else s.streak=0; saveStats(s);
+  $("banner").innerHTML = won ? "🏆 You win!" : "🤖 The bot wins";
+  if(won){ confetti(); if(s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
+  $("resBtns").style.visibility="visible";
+  G=null; // game finished
+}
+function setScore(y,b){ $("scoreLine").innerHTML=`<span class="y">${y}</span> – <span class="b">${b}</span>`; }
+function confetti(){
+  const set=["🎉","🏅","⭐","🎊","🥇"];
+  for(let i=0;i<26;i++){
+    const d=document.createElement("div"); d.className="confetti";
+    d.textContent=set[i%set.length]; d.style.left=Math.random()*100+"vw";
+    d.style.animationDuration=(1.8+Math.random()*1.6)+"s"; d.style.animationDelay=(Math.random()*.6)+"s";
+    document.body.appendChild(d); setTimeout(()=>d.remove(),4200);
+  }
+}
+
+/* ---------- Navigation ---------- */
+function goHome(){ gameToken++; G=null; stopTimer(); show("home"); }
+$("playBtn").onclick=newGame;
+$("againBtn").onclick=newGame;
+$("homeBtn").onclick=goHome;
+$("statsBtn").onclick=()=>{ renderStats(); show("stats"); };
+$("rulesBtn").onclick=()=>show("rules");
+document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
+document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
+$("resetBtn").onclick=()=>{ if(confirm("Reset all stats? This can't be undone.")){ saveStats({games:0,wins:0,streak:0,best:0}); renderStats(); } };
+$("homeSports").innerHTML=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
+
+if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>

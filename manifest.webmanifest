@@ -1,0 +1,13 @@
+{
+  "name": "Animal Draft",
+  "short_name": "Animal Draft",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#c9f0ff",
+  "theme_color": "#4cb8f5",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
