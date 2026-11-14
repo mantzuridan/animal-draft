@@ -101,6 +101,12 @@ h2{margin:0;font-size:22px;font-weight:600}
 .stage{text-align:center;padding:18px 14px 16px;position:relative}
 .stage .counter{position:absolute;top:10px;left:14px;font-size:13px;color:var(--muted)}
 .big-emoji{font-size:96px;line-height:1.1}
+.emoji-wrap{position:relative;display:inline-block}
+.sparkle{position:absolute;pointer-events:none;animation:twinkle 1.6s ease-in-out infinite}
+.sparkle.s1{top:-2px;right:-20px;font-size:26px}
+.sparkle.s2{bottom:10px;left:-18px;font-size:18px;animation-delay:.8s}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.1) rotate(20deg)}}
+.new-tag{position:absolute;top:8px;right:12px;font-size:12px;font-weight:600;color:#b8860b;background:#fff4cc;border-radius:8px;padding:2px 7px}
 .pop{animation:pop .35s cubic-bezier(.3,1.6,.6,1)}
 @keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
 .aname{font-size:28px;font-weight:700;margin-top:2px}
@@ -226,7 +232,8 @@ h2{margin:0;font-size:22px;font-weight:600}
     </div>
     <div class="card stage">
       <div class="counter" id="counter"></div>
-      <div class="big-emoji" id="aEmoji"></div>
+      <div class="new-tag" id="aNewTag" hidden>✨ Not in your album yet</div>
+      <div class="emoji-wrap"><div class="big-emoji" id="aEmoji"></div><span class="sparkle s1" hidden>✨</span><span class="sparkle s2" hidden>✨</span></div>
       <div class="aname" id="aName"></div>
       <div class="bidline" id="bidLine"></div>
     </div>
@@ -602,6 +609,10 @@ function showAnimal(a){
   const e=$("aEmoji"); e.textContent=a.emoji; e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop");
   $("aName").textContent=a.name;
   $("counter").textContent="Animal #"+G.shown;
+  // Sparkle = you haven't unlocked this animal in the album yet (only Hard games count, so only shown there)
+  const alb=loadAlbum(), fresh = G.level==="hard" && !(alb[a.id] && alb[a.id].won>0);
+  document.querySelectorAll("#draft .sparkle").forEach(s=>s.hidden=!fresh);
+  $("aNewTag").hidden=!fresh;
   $("bidLine").innerHTML="";
 }
 
