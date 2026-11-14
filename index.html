@@ -56,6 +56,12 @@ h2{margin:0;font-size:22px;font-weight:600}
 .sports-strip div{display:flex;flex-direction:column;align-items:center;gap:2px}
 .sports-strip b{font-size:26px;font-weight:400}
 
+/* Level switch */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.6);border-radius:16px;padding:4px}
+.seg button{font:inherit;font-weight:600;font-size:16px;border:0;border-radius:12px;padding:10px 6px;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(36,50,74,.15)}
+.lvl{font-size:13px;font-weight:600;background:#fff;border-radius:8px;padding:2px 7px;vertical-align:2px;color:var(--muted)}
+
 /* Top bar */
 .topbar{display:flex;align-items:center;gap:8px}
 .topbar .title{flex:1;font-weight:600;font-size:18px;color:#1f5f8a}
@@ -149,6 +155,9 @@ h2{margin:0;font-size:22px;font-weight:600}
     <h1>Animal Draft</h1>
     <div class="tag">Build your animal team. Beat the bot.</div>
     <div class="card sports-strip" id="homeSports"></div>
+    <div class="seg" id="levelSeg" role="group" aria-label="Bot level">
+      <button data-level="easy">🐣 Easy bot</button><button data-level="hard">🔥 Hard bot</button>
+    </div>
     <button class="btn green" id="playBtn">▶ Play</button>
     <div class="row">
       <button class="btn ghost grow" id="statsBtn">📊 Stats</button>
@@ -158,7 +167,7 @@ h2{margin:0;font-size:22px;font-weight:600}
 
   <!-- DRAFT -->
   <section id="draft" class="screen">
-    <div class="topbar"><div class="title">🏟️ The Draft</div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
+    <div class="topbar"><div class="title">🏟️ The Draft <span class="lvl" id="draftLevel"></span></div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
     <div class="sides">
       <div class="side you" id="sideYou"><div class="who"><span>You</span><span class="coins" id="coinsYou"></span></div><div class="team" id="teamYou"></div></div>
       <div class="side bot" id="sideBot"><div class="who"><span>🤖 Bot</span><span class="coins" id="coinsBot"></span></div><div class="team" id="teamBot"></div></div>
@@ -218,6 +227,9 @@ h2{margin:0;font-size:22px;font-weight:600}
   <!-- STATS -->
   <section id="stats" class="screen">
     <div class="topbar"><div class="title">📊 Your stats</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
+    <div class="seg" id="statsSeg" role="group" aria-label="Stats level">
+      <button data-level="easy">🐣 Easy bot</button><button data-level="hard">🔥 Hard bot</button>
+    </div>
     <div class="stats">
       <div class="stat"><b id="stGames">0</b><span>Games played</span></div>
       <div class="stat"><b id="stWins">0</b><span>Wins</span></div>
@@ -237,6 +249,7 @@ h2{margin:0;font-size:22px;font-weight:600}
       <p><b>3. Out of coins?</b> You lose your turns. The bot may buy each new animal for 1 coin, or it goes to you for free. When one team has 5 animals, the other team gets random ones.</p>
       <p><b>4. Pick your athletes.</b> Put one animal in each of the 5 sports. You have 90 seconds, and the bot picks in secret.</p>
       <p><b>5. The games.</b> Each sport is your animal vs the bot's. Higher score wins; a tie is a coin flip. Win 3 sports to win the game!</p>
+      <p><b>Bot level.</b> 🐣 Easy is a simple bot. 🔥 Hard manages its budget, values animals by what its team still needs, and picks its athletes carefully. Stats are kept separately for each level.</p>
       <p class="muted">Don't wait too long: after 20 seconds the game bids +1 for you.</p>
     </div>
   </section>
@@ -268,6 +281,58 @@ const ANIMALS = [
 ].map(([name,emoji,...s],id)=>({id,name,emoji,s,avg:s.reduce((a,b)=>a+b,0)/5}));
 
 const RULES = {budget:20, teamSize:5, bidSecs:20, assignSecs:90, botFactor:1.4, botBrokeBuyAvg:5, botAssignMin:7, autoAssignMin:5};
+// Hard bot settings (strongest found in simulation)
+const HARD = {V0:.3, alpha:.25, jitter:1};
+
+/* ---------- Hard bot brain ---------- */
+// F[i][s] = chance that score s beats a random animal in sport i (tie = 1/2)
+const F = SPORTS.map((_,i)=>{ const row=[0];
+  for(let s=1;s<=10;s++){ let w=0; for(const b of ANIMALS) w+= s>b.s[i]?1 : s===b.s[i]?.5 : 0; row.push(w/ANIMALS.length); }
+  return row; });
+const PERMS={};
+function perms(k){ // all ways to put k animals into k distinct sports
+  if(PERMS[k]) return PERMS[k];
+  const out=[], cur=[], used=[];
+  (function rec(){ if(cur.length===k){out.push(cur.slice());return;}
+    for(let i=0;i<SPORTS.length;i++) if(!used[i]){used[i]=1;cur.push(i);rec();cur.pop();used[i]=0;} })();
+  return PERMS[k]=out;
+}
+// Team strength = best placement of its animals; each still-empty sport counts as an average 0.5
+function bestPlacement(team){
+  const k=team.length; let bv=-1, bp=[];
+  for(const p of perms(k)){ let v=(SPORTS.length-k)*.5; for(let j=0;j<k;j++) v+=F[p[j]][team[j].s[p[j]]]; if(v>bv){bv=v;bp=p;} }
+  return {v:bv, p:bp};
+}
+const strength = team => bestPlacement(team).v;
+// Value = how much the animal improves my team + a quarter of how much it would improve the opponent's
+function hardValue(me,opp,a){
+  const g=strength([...me.team,a])-strength(me.team);
+  const og= opp.team.length<RULES.teamSize ? strength([...opp.team,a])-strength(opp.team) : 0;
+  return Math.max(g,0) + HARD.alpha*Math.max(og,0);
+}
+// Highest price: budget per missing animal, scaled by value; keeps 1 coin per later animal
+function hardLimit(me,opp,a){
+  const need=RULES.teamSize-me.team.length, perSlot=me.coins/need;
+  if(!G.jit.has(a.id)) G.jit.set(a.id, Math.floor(Math.random()*(2*HARD.jitter+1))-HARD.jitter);
+  const m=Math.round(perSlot*hardValue(me,opp,a)/HARD.V0) + G.jit.get(a.id);
+  const cap= need===1 ? me.coins : me.coins-(need-1);
+  return Math.max(0, Math.min(m,cap));
+}
+function pWin(ps){ let d=[1]; for(const p of ps){ const n=Array(d.length+1).fill(0); d.forEach((x,k)=>{n[k]+=x*(1-p); n[k+1]+=x*p;}); d=n; } return d[3]+d[4]+d[5]; }
+const beat=(s,t)=> s>t?1 : s===t?.5 : 0;
+// Try all 120 placements; pick the best chance to win 3+ sports vs the opponent's strongest and a random placement
+function hardAssign(team, oppTeam){
+  const op=bestPlacement(oppTeam).p, oppBest=[]; oppTeam.forEach((a,j)=>oppBest[op[j]]=a);
+  let best=null, bv=-1;
+  for(const p of perms(SPORTS.length)){
+    const plan=[]; team.forEach((a,j)=>plan[p[j]]=a);
+    const pa=[], pb=[];
+    for(let i=0;i<SPORTS.length;i++){ const s=plan[i].s[i]; pa.push(beat(s,oppBest[i].s[i]));
+      let w=0; for(const b of oppTeam) w+=beat(s,b.s[i]); pb.push(w/oppTeam.length); }
+    const v=.5*pWin(pa)+.5*pWin(pb); if(v>bv){bv=v;best=plan;}
+  }
+  return best;
+}
 
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
@@ -279,10 +344,24 @@ function toast(msg, ms=1500){ const t=$("toast"); t.innerHTML=msg; t.classList.a
 function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id)); window.scrollTo(0,0); }
 
 /* ---------- Stats (localStorage, optional) ---------- */
-const STATS_KEY="animalDraft.stats";
-function loadStats(){ try{ const v=JSON.parse(localStorage.getItem(STATS_KEY)); if(v && typeof v.games==="number") return v; }catch(e){} return {games:0,wins:0,streak:0,best:0}; }
-function saveStats(s){ try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){} }
-function renderStats(){ const s=loadStats(); $("stGames").textContent=s.games; $("stWins").textContent=s.wins; $("stStreak").textContent=s.streak; $("stBest").textContent=s.best; }
+// Stored as {easy:{...}, hard:{...}}; the old single-level format counts as Easy
+const STATS_KEY="animalDraft.stats", LEVEL_KEY="animalDraft.level";
+const emptyStats=()=>({games:0,wins:0,streak:0,best:0});
+function loadAllStats(){
+  let v=null; try{ v=JSON.parse(localStorage.getItem(STATS_KEY)); }catch(e){}
+  if(v && typeof v.games==="number") v={easy:v};
+  v = v && typeof v==="object" ? v : {};
+  return {easy:v.easy||emptyStats(), hard:v.hard||emptyStats()};
+}
+const loadStats = lvl => loadAllStats()[lvl];
+function saveStats(lvl,s){ const all=loadAllStats(); all[lvl]=s; try{ localStorage.setItem(STATS_KEY, JSON.stringify(all)); }catch(e){} }
+let statsLevel="easy";
+function renderStats(){ const s=loadStats(statsLevel); $("stGames").textContent=s.games; $("stWins").textContent=s.wins; $("stStreak").textContent=s.streak; $("stBest").textContent=s.best;
+  setSeg("statsSeg", statsLevel); }
+
+/* Bot level choice */
+let level="easy"; try{ if(localStorage.getItem(LEVEL_KEY)==="hard") level="hard"; }catch(e){}
+function setSeg(id,val){ document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on", b.dataset.level===val)); }
 
 /* ---------- Timer ---------- */
 let timerId=null;
@@ -309,6 +388,8 @@ function newGame(){
   gameToken++;
   G={
     token:gameToken,
+    level:level,
+    jit:new Map(),
     pool:shuffle(ANIMALS.slice()),
     you:{coins:RULES.budget, team:[]},
     bot:{coins:RULES.budget, team:[]},
@@ -317,6 +398,7 @@ function newGame(){
     cur:null, // {animal, mode, bid, leader, turn}
     busy:false,
   };
+  $("draftLevel").textContent = level==="hard" ? "🔥 Hard" : "🐣 Easy";
   show("draft");
   renderDraft();
   nextAnimal();
@@ -387,7 +469,7 @@ async function nextAnimal(){
     } else {
       $("status").textContent="You're out of coins — the bot decides…";
       await sleep(1300); if(!alive(t)) return;
-      richDecision("bot", a.avg>=RULES.botBrokeBuyAvg);
+      richDecision("bot", G.level==="hard" ? hardLimit(G.bot,G.you,a)>=1 : a.avg>=RULES.botBrokeBuyAvg);
     }
   } else {
     // Nobody has coins: the team with fewer animals gets it for free
@@ -433,7 +515,7 @@ function takeTurn(){
 
 function botBid(){
   const c=G.cur, a=c.animal;
-  const max=Math.min(Math.floor(a.avg*RULES.botFactor), G.bot.coins);
+  const max = G.level==="hard" ? hardLimit(G.bot,G.you,a) : Math.min(Math.floor(a.avg*RULES.botFactor), G.bot.coins);
   if(c.bid===0) return bid("bot",1);          // opener must bid at least 1
   if(c.bid+1<=max) return bid("bot",c.bid+1);
   pass("bot");
@@ -505,7 +587,7 @@ function autoAssign(team, min, preset){
 let A=null; // {plan:[animal|null x5], selected:animal|null}
 function startAssign(){
   G.cur=null; setControls("none"); hideTimer("timer");
-  G.botPlan = autoAssign(G.bot.team, RULES.botAssignMin);
+  G.botPlan = G.level==="hard" ? hardAssign(G.bot.team, G.you.team) : autoAssign(G.bot.team, RULES.botAssignMin);
   A={plan:Array(SPORTS.length).fill(null), selected:null};
   show("assign"); renderAssign();
   const t=G.token;
@@ -569,7 +651,7 @@ async function startResults(){
     setScore(ys,bs);
   }
   const won = ys>bs;
-  const s=loadStats(); s.games++; if(won){ s.wins++; s.streak++; s.best=Math.max(s.best,s.streak); } else s.streak=0; saveStats(s);
+  const s=loadStats(G.level); s.games++; if(won){ s.wins++; s.streak++; s.best=Math.max(s.best,s.streak); } else s.streak=0; saveStats(G.level,s);
   $("banner").innerHTML = won ? "🏆 You win!" : "🤖 The bot wins";
   if(won){ confetti(); if(s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   $("resBtns").style.visibility="visible";
@@ -591,11 +673,14 @@ function goHome(){ gameToken++; G=null; stopTimer(); show("home"); }
 $("playBtn").onclick=newGame;
 $("againBtn").onclick=newGame;
 $("homeBtn").onclick=goHome;
-$("statsBtn").onclick=()=>{ renderStats(); show("stats"); };
+$("statsBtn").onclick=()=>{ statsLevel=level; renderStats(); show("stats"); };
+document.querySelectorAll("#levelSeg button").forEach(b=>b.onclick=()=>{ level=b.dataset.level; try{ localStorage.setItem(LEVEL_KEY,level); }catch(e){} setSeg("levelSeg",level); });
+document.querySelectorAll("#statsSeg button").forEach(b=>b.onclick=()=>{ statsLevel=b.dataset.level; renderStats(); });
+setSeg("levelSeg",level);
 $("rulesBtn").onclick=()=>show("rules");
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
-$("resetBtn").onclick=()=>{ if(confirm("Reset all stats? This can't be undone.")){ saveStats({games:0,wins:0,streak:0,best:0}); renderStats(); } };
+$("resetBtn").onclick=()=>{ if(confirm("Reset all stats (Easy and Hard)? This can't be undone.")){ try{ localStorage.setItem(STATS_KEY, JSON.stringify({easy:emptyStats(),hard:emptyStats()})); }catch(e){} renderStats(); } };
 $("homeSports").innerHTML=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
 
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
