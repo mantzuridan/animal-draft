@@ -5,6 +5,11 @@ import * as Save from "./save.js";
 
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
+// Animal pictures: img/animals/<name without spaces>.png (a few names are shortened)
+const PIC_FILE = {"grizzlybear":"grizzly","komododragon":"komodo"};
+const picSrc = a => { const k=a.name.toLowerCase().replace(/ /g,""); return `img/animals/${PIC_FILE[k]||k}.png`; };
+const pic = a => `<img class="pic" src="${picSrc(a)}" alt="${a.name}" draggable="false">`;
+const ipic = a => `<img class="ipic" src="${picSrc(a)}" alt="">`;
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 let toastT;
 function toast(msg, ms=1500){ const t=$("toast"); t.innerHTML=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),ms); }
@@ -51,7 +56,7 @@ function renderDraft(){
     const t=$("team"+S); t.innerHTML="";
     for(let i=0;i<E.RULES.teamSize;i++){
       const a=G[side].team[i]; const d=document.createElement("div");
-      d.className="slot"+(a?" f":""); if(a){ d.textContent=a.emoji; d.title=a.name; }
+      d.className="slot"+(a?" f":""); if(a){ d.innerHTML=pic(a); d.title=a.name; }
       t.appendChild(d);
     }
   }
@@ -107,7 +112,7 @@ async function step(){
 }
 
 function showAnimal(a){
-  const e=$("aEmoji"); e.textContent=a.emoji; e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop");
+  const e=$("aEmoji"); e.innerHTML=pic(a); e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop");
   $("aName").textContent=a.name;
   $("counter").textContent="Animal #"+G.shown;
   // Sparkle = not unlocked in the album yet (only Hard games count, so only shown there)
@@ -193,7 +198,7 @@ function renderAssign(){
     const a=A.plan[i]; const d=document.createElement("div");
     d.className="sslot"+(A.selected && !a ? " target":"");
     d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
-      (a ? `<div class="who"><span class="e">${a.emoji}</span><span>${a.name}</span></div>` : `<div class="empty">empty</div>`);
+      (a ? `<div class="who"><span class="e">${pic(a)}</span><span>${a.name}</span></div>` : `<div class="empty">empty</div>`);
     d.onclick=()=>{
       if(A.selected){
         const prev=A.plan[i], from=A.plan.indexOf(A.selected);
@@ -208,7 +213,7 @@ function renderAssign(){
   G.you.team.filter(a=>!A.plan.includes(a)).forEach(a=>{
     const c=document.createElement("div");
     c.className="chip"+(A.selected===a?" sel":"");
-    c.innerHTML=`<div class="e">${a.emoji}</div><div class="n">${a.name}</div>`;
+    c.innerHTML=`<div class="e">${pic(a)}</div><div class="n">${a.name}</div>`;
     c.onclick=()=>{ A.selected = A.selected===a ? null : a; renderAssign(); };
     tray.appendChild(c);
   });
@@ -227,7 +232,7 @@ async function startResults(){
   let ys=0, bs=0; setScore(0,0);
   for(const r of res.rows){
     const row=document.createElement("div"); row.className="res";
-    const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${a.emoji}</span><span class="n">${a.name}</span></div>`;
+    const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${pic(a)}</span><span class="n">${a.name}</span></div>`;
     row.innerHTML = cell(r.you,"you") + `<div class="mid"><b>${r.sport.icon}</b>${r.sport.name}${r.close?'<br><span class="close">Close match!</span>':""}</div>` + cell(r.bot,"bot");
     list.appendChild(row);
     await sleep(80); if(!alive(t)) return;
@@ -241,8 +246,8 @@ async function startResults(){
   if(res.won){ confetti(); if(s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   if(lvl==="hard"){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
-    if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>a.emoji+" "+a.name).join(", ")}</b>`);
-    news.firstSport.forEach(({animal,sport})=>lines.push(`🏅 ${animal.emoji} ${animal.name} won its first ${sport.name}!`));
+    if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>ipic(a)+" "+a.name).join(", ")}</b>`);
+    news.firstSport.forEach(({animal,sport})=>lines.push(`🏅 ${ipic(animal)} ${animal.name} won its first ${sport.name}!`));
     if(lines.length) $("banner").innerHTML += `<div class="album-news">${lines.join("<br>")}</div>`;
   }
   $("resBtns").style.visibility="visible";
@@ -278,14 +283,14 @@ function renderAlbum(){
     const e=alb[a.id], open=Save.isUnlocked(alb,a.id), seen=e && e.played>0;
     const d=document.createElement("div");
     d.className="acard"+(open?"":" locked");
-    d.innerHTML=`<div class="e">${a.emoji}</div><div class="n">${seen?a.name:"???"}</div>`;
+    d.innerHTML=`<div class="e">${pic(a)}</div><div class="n">${seen?a.name:"???"}</div>`;
     d.onclick=()=>showAlbumAnimal(a);
     g.appendChild(d);
   });
 }
 function showAlbumAnimal(a){
   const alb=Save.loadAlbum(), e=alb[a.id], open=Save.isUnlocked(alb,a.id), seen=e && e.played>0;
-  $("adEmoji").textContent=a.emoji; $("adEmoji").classList.toggle("locked",!open);
+  $("adEmoji").innerHTML=pic(a); $("adEmoji").classList.toggle("locked",!open);
   $("adName").textContent= seen ? a.name : "???";
   $("adSummary").textContent= seen ? `Played ${e.played} · Won ${e.won} game${e.won===1?"":"s"}` : "You haven't drafted this animal yet.";
   const box=$("adSports"); box.innerHTML="";
@@ -348,3 +353,6 @@ if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serv
 
 // Hook for automated tests in the browser (read-only view of the current game)
 window.__ad = { E, Save, get G(){ return G; }, get A(){ return A; }, newGame, goHome, startResults, renderAssign, setLevel(l){ level=l; setSeg("levelSeg",l); } };
+
+// Load all animal pictures in the background so reveals don't pop in
+setTimeout(()=>E.ALL_ANIMALS.forEach(a=>{ const i=new Image(); i.src=picSrc(a); }), 1500);
