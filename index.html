@@ -55,8 +55,20 @@ h2{margin:0;font-size:22px;font-weight:600}
 .sports-strip{display:flex;justify-content:space-around;font-size:13px;color:var(--muted)}
 .sports-strip div{display:flex;flex-direction:column;align-items:center;gap:2px}
 .sports-strip b{font-size:26px;font-weight:400}
-.game-sports{padding:8px 6px;font-size:11px}
-.game-sports b{font-size:22px}
+.game-sports-card{padding:6px}
+.game-sports{font-size:11px}
+.game-sports b{font-size:22px;font-weight:400}
+.game-sports button{font:inherit;font-size:11px;color:var(--muted);background:transparent;border:2px solid transparent;border-radius:10px;padding:2px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.game-sports button.on{background:var(--you-l);border-color:var(--you);color:var(--ink)}
+@media (max-height:720px){
+  #draft{gap:8px}
+  #draft .stage{padding:10px 12px}
+  #draft .big-emoji{font-size:64px}
+  #draft .aname{font-size:24px}
+  #draft .bidline{margin-top:4px}
+  #draft .btn{padding:11px 14px}
+}
+.draft-sport-hint{margin-top:6px;font-size:13px;text-align:center;background:#f3f8fd;border-radius:10px;padding:6px 8px}
 .sports-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 2px;font-size:12px;color:var(--muted)}
 .sports-grid div,.sports-grid button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .sports-grid button{font:inherit;font-size:12px;color:var(--muted);background:transparent;border:2px solid transparent;border-radius:12px;padding:4px 0;cursor:pointer}
@@ -204,7 +216,10 @@ h2{margin:0;font-size:22px;font-weight:600}
   <!-- DRAFT -->
   <section id="draft" class="screen">
     <div class="topbar"><div class="title">🏟️ The Draft <span class="lvl" id="draftLevel"></span></div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
-    <div class="card sports-strip game-sports" aria-label="This game's sports"></div>
+    <div class="card game-sports-card">
+      <div class="sports-strip game-sports" aria-label="This game's sports"></div>
+      <div class="draft-sport-hint" id="draftSportHint" hidden></div>
+    </div>
     <div class="sides">
       <div class="side you" id="sideYou"><div class="who"><span>You</span><span class="coins" id="coinsYou"></span></div><div class="team" id="teamYou"></div></div>
       <div class="side bot" id="sideBot"><div class="who"><span>🤖 Bot</span><span class="coins" id="coinsBot"></span></div><div class="team" id="teamBot"></div></div>
@@ -834,9 +849,20 @@ $("homeSports").querySelectorAll("button").forEach(b=>b.onclick=()=>{
   h.classList.toggle("open", openSport>=0);
 });
 // The 5 sports drawn for this game, shown at the top of the draft and assignment screens
+// Tap one to see what it measures (same as on the home screen)
+let openGameSport=-1;
 function renderGameSports(){
-  const html=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
-  document.querySelectorAll(".game-sports").forEach(el=>el.innerHTML=html);
+  openGameSport=-1; $("draftSportHint").hidden=true;
+  const html=SPORTS.map((s,i)=>`<button type="button" data-slot="${i}"><b>${s.icon}</b>${s.name.replace("100m ","")}</button>`).join("");
+  document.querySelectorAll(".game-sports").forEach(el=>{
+    el.innerHTML=html;
+    el.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      const i=+b.dataset.slot; openGameSport = openGameSport===i ? -1 : i;
+      el.querySelectorAll("button").forEach(x=>x.classList.toggle("on", +x.dataset.slot===openGameSport));
+      const h=$("draftSportHint"); h.hidden = openGameSport<0;
+      if(openGameSport>=0) h.innerHTML=`<b>${SPORTS[i].icon} ${SPORTS[i].name}:</b> ${SPORTS[i].desc}`;
+    });
+  });
 }
 
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
