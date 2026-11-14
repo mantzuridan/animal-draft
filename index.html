@@ -58,7 +58,11 @@ h2{margin:0;font-size:22px;font-weight:600}
 .game-sports{padding:8px 6px;font-size:11px}
 .game-sports b{font-size:22px}
 .sports-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 2px;font-size:12px;color:var(--muted)}
-.sports-grid div{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sports-grid div,.sports-grid button{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sports-grid button{font:inherit;font-size:12px;color:var(--muted);background:transparent;border:2px solid transparent;border-radius:12px;padding:4px 0;cursor:pointer}
+.sports-grid button.on{background:var(--you-l);border-color:var(--you);color:var(--ink)}
+.sport-hint{margin-top:8px;min-height:38px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.sport-hint.open{color:var(--ink);background:#f3f8fd;border-radius:12px;padding:6px 10px;display:block;text-align:center}
 .sports-grid b{font-size:24px;font-weight:400}
 
 /* Level switch */
@@ -184,7 +188,7 @@ h2{margin:0;font-size:22px;font-weight:600}
     <div class="tag">Build your animal team. Beat the bot.</div>
     <div class="card">
       <div class="sports-grid" id="homeSports"></div>
-      <div class="hint" style="margin-top:6px">5 random sports in every game</div>
+      <div class="hint sport-hint" id="sportHint">5 random sports in every game · tap a sport to learn more</div>
     </div>
     <div class="seg" id="levelSeg" role="group" aria-label="Bot level">
       <button data-level="easy">🐣 Easy bot</button><button data-level="hard">🔥 Hard bot</button>
@@ -320,14 +324,14 @@ h2{margin:0;font-size:22px;font-weight:600}
 // All sports. Each game draws 5 of them (shown before the draft).
 // The album stores results by index in this list, so only ever ADD sports at the end.
 const ALL_SPORTS = [
-  {key:"sprint",   name:"100m Sprint",   icon:"🏃"},
-  {key:"swim",     name:"Swimming",      icon:"🏊"},
-  {key:"lift",     name:"Weightlifting", icon:"🏋️"},
-  {key:"jump",     name:"High Jump",     icon:"⬆️"},
-  {key:"jav",      name:"Javelin",       icon:"🎯"},
-  {key:"marathon", name:"Marathon",      icon:"🛣️"},
-  {key:"climb",    name:"Climbing",      icon:"🧗"},
-  {key:"archery",  name:"Archery",       icon:"🏹"},
+  {key:"sprint",   name:"100m Sprint",   icon:"🏃", desc:"Top running speed over a short dash."},
+  {key:"swim",     name:"Swimming",      icon:"🏊", desc:"Speed in the water. Running along the riverbed counts too!"},
+  {key:"lift",     name:"Weightlifting", icon:"🏋️", desc:"Raw strength: how much weight it can move."},
+  {key:"jump",     name:"High Jump",     icon:"⬆️", desc:"How high it can leap straight up. Wings give a small boost, and leaps out of the water count."},
+  {key:"jav",      name:"Javelin",       icon:"🎯", desc:"Striking power: a kick, punch, tail swipe or trunk blow."},
+  {key:"marathon", name:"Marathon",      icon:"🛣️", desc:"Endurance: how long it can keep running at a good pace."},
+  {key:"climb",    name:"Climbing",      icon:"🧗", desc:"Climbing trees, rocks and cliffs."},
+  {key:"archery",  name:"Archery",       icon:"🏹", desc:"Aim and eyesight: hitting a target with precision."},
 ];
 const SPORTS_PER_GAME = 5;
 // [name, emoji, sprint, swim, lift, highJump, javelin, marathon, climbing, archery]
@@ -818,7 +822,17 @@ $("rulesBtn").onclick=()=>show("rules");
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
 $("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats for both levels and the animal album)? This can't be undone.")){ try{ localStorage.setItem(STATS_KEY, JSON.stringify({easy:emptyStats(),hard:emptyStats()})); localStorage.removeItem(ALBUM_KEY); }catch(e){} renderStats(); } };
-$("homeSports").innerHTML=ALL_SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
+// Home sports: tap one to see what it measures, tap again to hide
+const SPORT_HINT_DEFAULT=$("sportHint").textContent;
+let openSport=-1;
+$("homeSports").innerHTML=ALL_SPORTS.map((s,i)=>`<button type="button" data-sport="${i}"><b>${s.icon}</b>${s.name.replace("100m ","")}</button>`).join("");
+$("homeSports").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  const i=+b.dataset.sport; openSport = openSport===i ? -1 : i;
+  $("homeSports").querySelectorAll("button").forEach(x=>x.classList.toggle("on", +x.dataset.sport===openSport));
+  const h=$("sportHint");
+  h.innerHTML = openSport<0 ? SPORT_HINT_DEFAULT : `<b>${ALL_SPORTS[i].icon} ${ALL_SPORTS[i].name}:</b> ${ALL_SPORTS[i].desc}`;
+  h.classList.toggle("open", openSport>=0);
+});
 // The 5 sports drawn for this game, shown at the top of the draft and assignment screens
 function renderGameSports(){
   const html=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
