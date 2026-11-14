@@ -55,6 +55,11 @@ h2{margin:0;font-size:22px;font-weight:600}
 .sports-strip{display:flex;justify-content:space-around;font-size:13px;color:var(--muted)}
 .sports-strip div{display:flex;flex-direction:column;align-items:center;gap:2px}
 .sports-strip b{font-size:26px;font-weight:400}
+.game-sports{padding:8px 6px;font-size:11px}
+.game-sports b{font-size:22px}
+.sports-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 2px;font-size:12px;color:var(--muted)}
+.sports-grid div{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sports-grid b{font-size:24px;font-weight:400}
 
 /* Level switch */
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.6);border-radius:16px;padding:4px}
@@ -177,7 +182,10 @@ h2{margin:0;font-size:22px;font-weight:600}
     <div class="parade" aria-hidden="true"><span>🦁</span><span style="animation-delay:.3s">🐘</span><span style="animation-delay:.6s">🦘</span><span style="animation-delay:.9s">🐬</span><span style="animation-delay:1.2s">🦒</span></div>
     <h1>Animal Draft</h1>
     <div class="tag">Build your animal team. Beat the bot.</div>
-    <div class="card sports-strip" id="homeSports"></div>
+    <div class="card">
+      <div class="sports-grid" id="homeSports"></div>
+      <div class="hint" style="margin-top:6px">5 random sports in every game</div>
+    </div>
     <div class="seg" id="levelSeg" role="group" aria-label="Bot level">
       <button data-level="easy">🐣 Easy bot</button><button data-level="hard">🔥 Hard bot</button>
     </div>
@@ -192,6 +200,7 @@ h2{margin:0;font-size:22px;font-weight:600}
   <!-- DRAFT -->
   <section id="draft" class="screen">
     <div class="topbar"><div class="title">🏟️ The Draft <span class="lvl" id="draftLevel"></span></div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
+    <div class="card sports-strip game-sports" aria-label="This game's sports"></div>
     <div class="sides">
       <div class="side you" id="sideYou"><div class="who"><span>You</span><span class="coins" id="coinsYou"></span></div><div class="team" id="teamYou"></div></div>
       <div class="side bot" id="sideBot"><div class="who"><span>🤖 Bot</span><span class="coins" id="coinsBot"></span></div><div class="team" id="teamBot"></div></div>
@@ -292,6 +301,7 @@ h2{margin:0;font-size:22px;font-weight:600}
     <div class="topbar"><div class="title">📖 How to play</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
     <div class="card rules">
       <p><b>1. The draft.</b> You and the bot each have <b>20 coins</b>. Animals come up one at a time and you bid for them. Whoever opens must bid at least 1. Raise by 1 or choose your own amount. Whoever passes loses the animal; the highest bidder pays.</p>
+      <p><b>The sports.</b> There are 8 sports, and every game uses 5 random ones. You see them at the top of the screen before the first animal comes up.</p>
       <p><b>2. Secret skills.</b> Every animal has a hidden score in each sport. Use what you know about animals!</p>
       <p><b>3. Out of coins?</b> You lose your turns. The bot may buy each new animal for 1 coin, or it goes to you for free. When one team has 5 animals, the other team gets random ones.</p>
       <p><b>4. Pick your athletes.</b> Put one animal in each of the 5 sports. You have 90 seconds, and the bot picks in secret.</p>
@@ -307,36 +317,51 @@ h2{margin:0;font-size:22px;font-weight:600}
 <script>
 "use strict";
 /* ---------- Data ---------- */
-const SPORTS = [
-  {key:"sprint", name:"100m Sprint", icon:"🏃"},
-  {key:"swim",   name:"Swimming",    icon:"🏊"},
-  {key:"lift",   name:"Weightlifting", icon:"🏋️"},
-  {key:"jump",   name:"High Jump",   icon:"⬆️"},
-  {key:"jav",    name:"Javelin",     icon:"🎯"},
+// All sports. Each game draws 5 of them (shown before the draft).
+// The album stores results by index in this list, so only ever ADD sports at the end.
+const ALL_SPORTS = [
+  {key:"sprint",   name:"100m Sprint",   icon:"🏃"},
+  {key:"swim",     name:"Swimming",      icon:"🏊"},
+  {key:"lift",     name:"Weightlifting", icon:"🏋️"},
+  {key:"jump",     name:"High Jump",     icon:"⬆️"},
+  {key:"jav",      name:"Javelin",       icon:"🎯"},
+  {key:"marathon", name:"Marathon",      icon:"🛣️"},
+  {key:"climb",    name:"Climbing",      icon:"🧗"},
+  {key:"archery",  name:"Archery",       icon:"🏹"},
 ];
-// [name, emoji, sprint, swim, lift, highJump, javelin]
-const ANIMALS = [
-  ["Cheetah","🐆",10,3,4,6,4],["Lion","🦁",10,4,7,8,7],["Tiger","🐅",8,5,8,10,8],["Puma","🐆",9,3,5,10,5],
-  ["Jaguar","🐆",9,5,6,7,6],["Wolf","🐺",8,5,3,6,3],["Fox","🦊",7,4,1,6,1],["Grizzly Bear","🐻",8,5,9,3,9],
-  ["Polar Bear","🐻‍❄️",6,6,9,3,9],["Panda","🐼",5,3,5,2,5],["Elephant","🐘",6,3,10,1,10],["Rhino","🦏",7,2,10,1,9],
-  ["Hippo","🦛",5,6,10,1,7],["Giraffe","🦒",8,2,6,2,10],["Zebra","🦓",9,3,5,5,8],["Horse","🐎",9,4,7,7,8],
-  ["Camel","🐫",9,2,7,3,6],["Moose","🫎",8,6,8,6,8],["Bison","🦬",8,4,9,6,9],["Kangaroo","🦘",9,4,5,9,8],
-  ["Gorilla","🦍",6,1,8,4,8],["Chimpanzee","🐒",6,1,6,5,7],["Ostrich","🐦",9,3,4,6,8],["Eagle","🦅",2,2,2,5,4],
-  ["Penguin","🐧",2,9,2,6,3],["Crocodile","🐊",4,8,7,5,7],["Tortoise","🐢",1,1,3,1,1],["Rabbit","🐇",8,3,1,5,2],
-  ["Frog","🐸",2,4,1,4,1],["Otter","🦦",5,6,2,3,2],["Sea Lion","🦭",5,9,5,6,4],["Dolphin","🐬",1,10,4,10,8],
-  ["Shark","🦈",1,10,6,9,7],["Impala","🦌",10,3,2,9,3],["Mountain Goat","🐐",5,2,4,8,6],["Wild Boar","🐗",7,4,6,5,6],
-  ["Sloth","🦥",1,2,3,1,2],["Squirrel","🐿️",5,2,1,6,1],["Honey Badger","🦡",5,3,3,3,4],["Komodo Dragon","🦎",4,4,5,1,5],
-].map(([name,emoji,...s],id)=>({id,name,emoji,s,avg:s.reduce((a,b)=>a+b,0)/5}));
+const SPORTS_PER_GAME = 5;
+// [name, emoji, sprint, swim, lift, highJump, javelin, marathon, climbing, archery]
+const ALL_ANIMALS = [
+  ["Cheetah","🐆",10,3,4,6,4,2,2,8],["Lion","🦁",10,4,7,8,7,3,4,6],["Tiger","🐅",8,5,8,10,8,3,3,7],["Puma","🐆",9,3,5,10,5,4,8,7],
+  ["Jaguar","🐆",9,5,6,7,6,3,8,7],["Wolf","🐺",8,5,3,6,3,10,2,6],["Fox","🦊",7,4,1,6,1,7,4,8],["Grizzly Bear","🐻",8,5,9,3,9,5,4,4],
+  ["Polar Bear","🐻‍❄️",6,6,9,3,9,6,3,4],["Panda","🐼",5,3,5,2,5,2,7,3],["Elephant","🐘",6,3,10,1,10,6,1,4],["Rhino","🦏",7,2,10,1,9,4,1,1],
+  ["Hippo","🦛",5,6,10,1,7,2,1,2],["Giraffe","🦒",8,2,6,2,10,6,1,7],["Zebra","🦓",9,3,5,5,8,8,1,5],["Horse","🐎",9,4,7,7,8,10,1,5],
+  ["Camel","🐫",9,2,7,3,6,9,1,4],["Moose","🫎",8,6,8,6,8,6,1,3],["Bison","🦬",8,4,9,6,9,7,2,3],["Kangaroo","🦘",9,4,5,9,8,8,2,4],
+  ["Gorilla","🦍",6,1,8,4,8,2,5,7],["Chimpanzee","🐒",6,1,6,5,7,3,10,10],["Ostrich","🐦",9,3,4,6,8,8,1,7],["Eagle","🦅",2,2,2,5,4,2,2,10],
+  ["Penguin","🐧",2,9,2,6,3,2,3,4],["Crocodile","🐊",4,8,7,5,7,1,3,5],["Tortoise","🐢",1,1,3,1,1,1,1,2],["Rabbit","🐇",8,3,1,5,2,3,2,4],
+  ["Frog","🐸",2,4,1,4,1,1,4,6],["Otter","🦦",5,6,2,3,2,3,2,4],["Sea Lion","🦭",5,9,5,6,4,1,3,5],["Dolphin","🐬",1,10,4,10,8,1,1,5],
+  ["Shark","🦈",1,10,6,9,7,1,1,5],["Impala","🦌",10,3,2,9,3,7,2,4],["Mountain Goat","🐐",5,2,4,8,6,5,9,5],["Wild Boar","🐗",7,4,6,5,6,5,1,2],
+  ["Sloth","🦥",1,2,3,1,2,1,7,2],["Squirrel","🐿️",5,2,1,6,1,2,10,5],["Honey Badger","🦡",5,3,3,3,4,5,6,4],["Komodo Dragon","🦎",4,4,5,1,5,3,3,3],
+].map(([name,emoji,...full],id)=>({id,name,emoji,full}));
+
+// The current game's view: 5 drawn sports, and animals whose s[] / avg cover only those sports
+let SPORTS=[], SPORT_IDX=[], ANIMALS=[], F=[];
+function setupSports(idx){
+  SPORT_IDX=idx.slice().sort((a,b)=>a-b);
+  SPORTS=SPORT_IDX.map(i=>ALL_SPORTS[i]);
+  ANIMALS=ALL_ANIMALS.map(a=>{ const s=SPORT_IDX.map(i=>a.full[i]); return {id:a.id, name:a.name, emoji:a.emoji, s, avg:s.reduce((x,y)=>x+y,0)/s.length}; });
+  // F[i][s] = chance that score s beats a random animal in this game's sport i (tie = 1/2)
+  F = SPORTS.map((_,i)=>{ const row=[0];
+    for(let s=1;s<=10;s++){ let w=0; for(const b of ANIMALS) w+= s>b.s[i]?1 : s===b.s[i]?.5 : 0; row.push(w/ANIMALS.length); }
+    return row; });
+}
+function drawSports(){ const idx=[...ALL_SPORTS.keys()]; return shuffle(idx).slice(0,SPORTS_PER_GAME); }
 
 const RULES = {budget:20, teamSize:5, bidSecs:20, assignSecs:90, botFactor:1.4, botBrokeBuyAvg:5, botAssignMin:7, autoAssignMin:5};
 // Hard bot settings (strongest found in simulation)
 const HARD = {V0:.3, alpha:.25, jitter:1};
 
-/* ---------- Hard bot brain ---------- */
-// F[i][s] = chance that score s beats a random animal in sport i (tie = 1/2)
-const F = SPORTS.map((_,i)=>{ const row=[0];
-  for(let s=1;s<=10;s++){ let w=0; for(const b of ANIMALS) w+= s>b.s[i]?1 : s===b.s[i]?.5 : 0; row.push(w/ANIMALS.length); }
-  return row; });
+/* ---------- Hard bot brain (works on the current game's 5 sports) ---------- */
 const PERMS={};
 function perms(k){ // all ways to put k animals into k distinct sports
   if(PERMS[k]) return PERMS[k];
@@ -417,7 +442,8 @@ const albumEntry=(alb,id)=> alb[id] || (alb[id]={played:0, won:0, sports:{}});
 function recordAlbum(plan, sportWinners, gameWon){
   const alb=loadAlbum(), news={unlocked:[], firstSport:[]};
   plan.forEach((a,i)=>{
-    const e=albumEntry(alb,a.id), sp=e.sports[i]||(e.sports[i]={played:0,won:0});
+    const gi=SPORT_IDX[i]; // stored by global sport index
+    const e=albumEntry(alb,a.id), sp=e.sports[gi]||(e.sports[gi]={played:0,won:0});
     e.played++; sp.played++;
     if(sportWinners[i]==="you"){ if(sp.won===0) news.firstSport.push({a,i}); sp.won++; }
     if(gameWon){ if(e.won===0) news.unlocked.push(a); e.won++; }
@@ -455,6 +481,8 @@ let gameToken=0; // invalidates pending bot actions after quitting
 
 function newGame(){
   gameToken++;
+  setupSports(drawSports());
+  renderGameSports();
   G={
     token:gameToken,
     level:level,
@@ -745,11 +773,11 @@ function confetti(){
 
 /* ---------- Album screens ---------- */
 function renderAlbum(){
-  const alb=loadAlbum(), unlocked=ANIMALS.filter(a=>alb[a.id] && alb[a.id].won>0).length;
-  $("albumCount").textContent=`${unlocked} / ${ANIMALS.length} animals`;
-  $("albumBar").style.width=(100*unlocked/ANIMALS.length)+"%";
+  const alb=loadAlbum(), unlocked=ALL_ANIMALS.filter(a=>alb[a.id] && alb[a.id].won>0).length;
+  $("albumCount").textContent=`${unlocked} / ${ALL_ANIMALS.length} animals`;
+  $("albumBar").style.width=(100*unlocked/ALL_ANIMALS.length)+"%";
   const g=$("albumGrid"); g.innerHTML="";
-  ANIMALS.forEach(a=>{
+  ALL_ANIMALS.forEach(a=>{
     const e=alb[a.id], open=e && e.won>0, seen=e && e.played>0;
     const d=document.createElement("div");
     d.className="acard"+(open?"":" locked");
@@ -764,7 +792,7 @@ function showAnimal_(a){
   $("adName").textContent= seen ? a.name : "???";
   $("adSummary").textContent= seen ? `Played ${e.played} · Won ${e.won} game${e.won===1?"":"s"}` : "You haven't drafted this animal yet.";
   const box=$("adSports"); box.innerHTML="";
-  if(seen) SPORTS.forEach((sp,i)=>{
+  if(seen) ALL_SPORTS.forEach((sp,i)=>{
     const r=e.sports[i]||{played:0,won:0};
     const d=document.createElement("div"); d.className="sline"+(r.won>0?" won":"");
     d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
@@ -790,7 +818,12 @@ $("rulesBtn").onclick=()=>show("rules");
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
 $("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats for both levels and the animal album)? This can't be undone.")){ try{ localStorage.setItem(STATS_KEY, JSON.stringify({easy:emptyStats(),hard:emptyStats()})); localStorage.removeItem(ALBUM_KEY); }catch(e){} renderStats(); } };
-$("homeSports").innerHTML=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
+$("homeSports").innerHTML=ALL_SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
+// The 5 sports drawn for this game, shown at the top of the draft and assignment screens
+function renderGameSports(){
+  const html=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
+  document.querySelectorAll(".game-sports").forEach(el=>el.innerHTML=html);
+}
 
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
