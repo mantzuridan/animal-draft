@@ -1,7 +1,7 @@
 // Player progress: stats per bot level and the animal album.
 // Stored in this browser only (localStorage). Later this module is the one place to swap for a server account.
 
-const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album", LEVEL_KEY="animalDraft.level";
+const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album";
 
 function read(key){ try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; } }
 function write(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
@@ -42,7 +42,5 @@ export function recordAlbum(rows, gameWon){
 }
 
 /* ---------- Preferences and reset ---------- */
-export function loadLevel(){ try{ return localStorage.getItem(LEVEL_KEY)==="hard" ? "hard" : "easy"; }catch(e){ return "easy"; } }
-export function saveLevel(level){ try{ localStorage.setItem(LEVEL_KEY, level); }catch(e){} }
-// Clears the whole account: stats for both levels and the album
+// Clears the whole account: stats and the album
 export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ localStorage.removeItem(ALBUM_KEY); }catch(e){} }

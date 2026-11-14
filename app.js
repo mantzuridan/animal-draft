@@ -34,7 +34,8 @@ function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
 function hideTimer(wrapId){ stopTimer(); $(wrapId).style.visibility="hidden"; }
 
 /* ---------- Game ---------- */
-let level=Save.loadLevel();
+// The bot is the "hard" level; "easy" is only used for practice games, which don't count anywhere
+let level="hard";
 let G=null;      // the engine's game state
 let token=0;     // invalidates pending steps after quitting
 const alive = t => G && t===token;
@@ -43,7 +44,8 @@ function newGame(){
   token++;
   G=E.createGame({level});
   renderGameSports();
-  $("draftLevel").textContent = level==="hard" ? "🔥 Hard" : "🐣 Easy";
+  $("draftLevel").textContent = level==="hard" ? "" : "🐣 Practice";
+  $("draftLevel").hidden = level==="hard";
   show("draft");
   renderDraft();
   step();
@@ -241,9 +243,10 @@ async function startResults(){
     r.winner==="you" ? ys++ : bs++;
     setScore(ys,bs);
   }
-  const s=Save.recordGame(lvl, res.won);
+  const s = lvl==="hard" ? Save.recordGame(lvl, res.won) : null;
   $("banner").innerHTML = res.won ? "🏆 You win!" : "🤖 The bot wins";
-  if(res.won){ confetti(); if(s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
+  if(!s) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🐣 Practice game, not counted</div>`;
+  if(res.won){ confetti(); if(s && s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   if(lvl==="hard"){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
     if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>ipic(a)+" "+a.name).join(", ")}</b>`);
@@ -265,12 +268,9 @@ function confetti(){
 }
 
 /* ---------- Stats ---------- */
-let statsLevel="easy";
-function setSeg(id,val){ document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on", b.dataset.level===val)); }
 function renderStats(){
-  const s=Save.loadStats(statsLevel);
+  const s=Save.loadStats("hard");
   $("stGames").textContent=s.games; $("stWins").textContent=s.wins; $("stStreak").textContent=s.streak; $("stBest").textContent=s.best;
-  setSeg("statsSeg", statsLevel);
 }
 
 /* ---------- Album screens ---------- */
@@ -301,7 +301,7 @@ function showAlbumAnimal(a){
       `<div class="rec">${r.played ? `Won ${r.won} of ${r.played}` : "Not tried"}</div><div class="mark">${r.won>0?"🏅":""}</div>`;
     box.appendChild(d);
   });
-  $("adHint").textContent = open ? "🏅 = this animal has won in that sport" : "Win a game vs the 🔥 Hard bot with this animal in your team to unlock it.";
+  $("adHint").textContent = open ? "🏅 = this animal has won in that sport" : "Win a game with this animal in your team to unlock it.";
   show("animal");
 }
 $("albumBtn").onclick=()=>{ renderAlbum(); show("album"); };
@@ -337,22 +337,20 @@ function renderGameSports(){
 
 /* ---------- Navigation ---------- */
 function goHome(){ token++; G=null; stopTimer(); show("home"); }
-$("playBtn").onclick=newGame;
-$("againBtn").onclick=newGame;
+$("playBtn").onclick=()=>{ level="hard"; newGame(); };
+$("practiceBtn").onclick=()=>{ level="easy"; newGame(); };
+$("againBtn").onclick=newGame;   // same mode as the game just played
 $("homeBtn").onclick=goHome;
-$("statsBtn").onclick=()=>{ statsLevel=level; renderStats(); show("stats"); };
+$("statsBtn").onclick=()=>{ renderStats(); show("stats"); };
 $("rulesBtn").onclick=()=>show("rules");
-document.querySelectorAll("#levelSeg button").forEach(b=>b.onclick=()=>{ level=b.dataset.level; Save.saveLevel(level); setSeg("levelSeg",level); });
-document.querySelectorAll("#statsSeg button").forEach(b=>b.onclick=()=>{ statsLevel=b.dataset.level; renderStats(); });
-setSeg("levelSeg",level);
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
-$("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats for both levels and the animal album)? This can't be undone.")){ Save.resetAccount(); renderStats(); } };
+$("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats and the animal album)? This can't be undone.")){ Save.resetAccount(); renderStats(); } };
 
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
 // Hook for automated tests in the browser (read-only view of the current game)
-window.__ad = { E, Save, get G(){ return G; }, get A(){ return A; }, newGame, goHome, startResults, renderAssign, setLevel(l){ level=l; setSeg("levelSeg",l); } };
+window.__ad = { E, Save, get G(){ return G; }, get A(){ return A; }, newGame, goHome, startResults, renderAssign, setLevel(l){ level=l; } };
 
 // Load all animal pictures in the background so reveals don't pop in
 setTimeout(()=>E.ALL_ANIMALS.forEach(a=>{ const i=new Image(); i.src=picSrc(a); }), 1500);

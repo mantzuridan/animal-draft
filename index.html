@@ -81,6 +81,7 @@ h2{margin:0;font-size:22px;font-weight:600}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.6);border-radius:16px;padding:4px}
 .seg button{font:inherit;font-weight:600;font-size:16px;border:0;border-radius:12px;padding:10px 6px;background:transparent;color:var(--muted);cursor:pointer}
 .seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(36,50,74,.15)}
+.linkbtn{font:inherit;font-size:15px;font-weight:600;color:#1f5f8a;background:transparent;border:0;padding:8px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;align-self:center}
 .lvl{font-size:13px;font-weight:600;background:#fff;border-radius:8px;padding:2px 7px;vertical-align:2px;color:var(--muted)}
 
 /* Top bar */
@@ -211,15 +212,13 @@ h2{margin:0;font-size:22px;font-weight:600}
       <div class="sports-grid" id="homeSports"></div>
       <div class="hint sport-hint" id="sportHint">5 random sports in every game · tap a sport to learn more</div>
     </div>
-    <div class="seg" id="levelSeg" role="group" aria-label="Bot level">
-      <button data-level="easy">🐣 Easy bot</button><button data-level="hard">🔥 Hard bot</button>
-    </div>
     <button class="btn green" id="playBtn">▶ Play</button>
     <div class="row">
       <button class="btn ghost grow small3" id="statsBtn">📊 Stats</button>
       <button class="btn ghost grow small3" id="albumBtn">🗂️ Album</button>
       <button class="btn ghost grow small3" id="rulesBtn">📖 Rules</button>
     </div>
+    <button class="linkbtn" id="practiceBtn">🐣 Practice vs a beginner bot</button>
   </section>
 
   <!-- DRAFT -->
@@ -289,9 +288,6 @@ h2{margin:0;font-size:22px;font-weight:600}
   <!-- STATS -->
   <section id="stats" class="screen">
     <div class="topbar"><div class="title">📊 Your stats</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
-    <div class="seg" id="statsSeg" role="group" aria-label="Stats level">
-      <button data-level="easy">🐣 Easy bot</button><button data-level="hard">🔥 Hard bot</button>
-    </div>
     <div class="stats">
       <div class="stat"><b id="stGames">0</b><span>Games played</span></div>
       <div class="stat"><b id="stWins">0</b><span>Wins</span></div>
@@ -308,7 +304,7 @@ h2{margin:0;font-size:22px;font-weight:600}
     <div class="album-head card">
       <div class="album-count" id="albumCount"></div>
       <div class="album-bar"><i id="albumBar"></i></div>
-      <div class="hint">Win a game vs the 🔥 Hard bot with an animal in your team to unlock it.</div>
+      <div class="hint">Win a game with an animal in your team to unlock it. Practice games don't count.</div>
     </div>
     <div class="album-grid" id="albumGrid"></div>
   </section>
@@ -335,8 +331,9 @@ h2{margin:0;font-size:22px;font-weight:600}
       <p><b>3. Out of coins?</b> You lose your turns. The bot may buy each new animal for 1 coin, or it goes to you for free. When one team has 5 animals, the other team gets random ones.</p>
       <p><b>4. Pick your athletes.</b> Put one animal in each of the 5 sports. You have 90 seconds, and the bot picks in secret.</p>
       <p><b>5. The games.</b> Each sport is your animal vs the bot's. Higher score wins; a tie is a coin flip. Win 3 sports to win the game!</p>
-      <p><b>Bot level.</b> 🐣 Easy is a simple bot. 🔥 Hard manages its budget, values animals by what its team still needs, and picks its athletes carefully. Stats are kept separately for each level.</p>
-      <p><b>🗂️ Album.</b> Every animal starts as a shadow. Win a game vs the 🔥 Hard bot with it in your team to unlock it. Tap an animal to see its record in each sport.</p>
+      <p><b>The bot.</b> It manages its budget, values animals by what its team still needs, and picks its athletes carefully.</p>
+      <p><b>🗂️ Album.</b> Every animal starts as a shadow. Win a game with it in your team to unlock it. Tap an animal to see its record in each sport.</p>
+      <p><b>🐣 Practice.</b> Want to warm up? Practice mode plays a beginner bot. Practice games don't count in your stats or album.</p>
       <p class="muted">Don't wait too long: after 20 seconds the game bids +1 for you.</p>
     </div>
   </section>
