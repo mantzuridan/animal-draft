@@ -236,6 +236,8 @@ h2{margin:0;font-size:22px;font-weight:600}
 .medals4 span{filter:grayscale(1);opacity:.25}
 .medals4 span.got{filter:none;opacity:1}
 .agoal{font-size:14px;color:var(--muted);margin-top:2px}
+.agoal .reward{display:inline-block;font-size:12px;font-weight:700;color:#8a6200;background:#fff4cc;border-radius:8px;padding:1px 7px;white-space:nowrap}
+.ach-left{text-align:center;font-weight:700;color:#b8860b}
 .agoal.done{color:#b8860b;font-weight:600}
 .abar{height:8px;background:#e7eef6;border-radius:5px;overflow:hidden;margin-top:6px}
 .abar i{display:block;height:100%;background:var(--gold);border-radius:5px}
@@ -384,7 +386,8 @@ h2{margin:0;font-size:22px;font-weight:600}
     <div class="album-head card">
       <div class="album-count" id="achCount"></div>
       <div class="album-bar"><i id="achBar"></i></div>
-      <div class="hint">Each achievement has 4 medals, earned in order. Practice games don't count.</div>
+      <div class="ach-left" id="achLeft"></div>
+      <div class="hint">Each achievement has 4 medals, earned in order: 🥉 +5 ⭐ · 🥈 +10 ⭐ · 🥇 +25 ⭐ · 💎 +75 ⭐. Practice games don't count.</div>
     </div>
     <div class="ach-list" id="achList"></div>
   </section>
