@@ -1,6 +1,6 @@
 // Network-first service worker: always tries the latest version, falls back to cache offline.
-const CACHE = "animal-draft-v1";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg"];
+const CACHE = "animal-draft-v2";
+const FILES = ["./", "index.html", "app.js", "engine.js", "save.js", "manifest.webmanifest", "icon.svg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(self.clients.claim()); });
 self.addEventListener("fetch", e => {
