@@ -2,6 +2,8 @@
 // Game rules and bots live in engine.js; saved progress lives in save.js.
 import * as E from "./engine.js";
 import * as Save from "./save.js";
+import * as Ach from "./achievements.js";
+const TORTOISE_ID = E.ALL_ANIMALS.find(a=>a.name==="Tortoise").id;
 
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
@@ -243,6 +245,7 @@ async function startResults(){
     r.winner==="you" ? ys++ : bs++;
     setScore(ys,bs);
   }
+  const factsBefore = lvl==="hard" ? Save.loadFacts() : null;
   const s = lvl==="hard" ? Save.recordGame(lvl, res.won) : null;
   $("banner").innerHTML = res.won ? "🏆 You win!" : "🤖 The bot wins";
   if(!s) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🐣 Practice game, not counted</div>`;
@@ -251,6 +254,9 @@ async function startResults(){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
     if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>ipic(a)+" "+a.name).join(", ")}</b>`);
     news.firstSport.forEach(({animal,sport})=>lines.push(`🏅 ${ipic(animal)} ${animal.name} won its first ${sport.name}!`));
+    Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID));
+    Ach.newlyDone(factsBefore, Save.loadFacts()).forEach(({ach,tier})=>
+      lines.push(`${Ach.TIER_ICONS[tier]} <b>${ach.name}</b>: ${ach.tiers[tier].text}`));
     if(lines.length) $("banner").innerHTML += `<div class="album-news">${lines.join("<br>")}</div>`;
   }
   $("resBtns").style.visibility="visible";
@@ -305,6 +311,28 @@ function showAlbumAnimal(a){
   show("animal");
 }
 $("albumBtn").onclick=()=>{ renderAlbum(); show("album"); };
+
+/* ---------- Achievements screen ---------- */
+function renderAchievements(){
+  const f=Save.loadFacts();
+  const done=Ach.ACHIEVEMENTS.reduce((s,a)=>s+Ach.tiersDone(a,f),0), total=Ach.totalTiers();
+  $("achCount").textContent=`${done} / ${total} medals`;
+  $("achBar").style.width=(100*done/total)+"%";
+  $("achList").innerHTML=Ach.ACHIEVEMENTS.map(a=>{
+    const n=Ach.tiersDone(a,f), next=a.tiers[n];
+    const medals=Ach.TIER_ICONS.map((ic,i)=>`<span class="${i<n?"got":""}">${ic}</span>`).join("");
+    let goal;
+    if(!next) goal=`<div class="agoal done">All 4 medals earned!</div>`;
+    else {
+      const p=next.progress ? next.progress(f) : null;
+      goal=`<div class="agoal">${TIER_LABEL[n]}: ${next.text}</div>`+
+        (p ? `<div class="abar"><i style="width:${100*p[0]/p[1]}%"></i></div><div class="anum">${p[0]} / ${p[1]}</div>` : "");
+    }
+    return `<div class="ach${n===4?" full":""}"><div class="aicon">${a.icon}</div><div class="abody"><div class="atop"><b>${a.name}</b><span class="medals4">${medals}</span></div>${goal}</div></div>`;
+  }).join("");
+}
+const TIER_LABEL=["Bronze","Silver","Gold","Diamond"];
+$("achBtn").onclick=()=>{ renderAchievements(); show("achievements"); };
 $("animalBack").onclick=()=>{ renderAlbum(); show("album"); };
 
 /* ---------- Sport descriptions (tap a sport icon) ---------- */

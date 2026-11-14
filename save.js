@@ -1,7 +1,7 @@
-// Player progress: stats per bot level and the animal album.
+// Player progress: stats per bot level, the animal album and achievement counters.
 // Stored in this browser only (localStorage). Later this module is the one place to swap for a server account.
 
-const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album";
+const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album", ACH_KEY="animalDraft.ach";
 
 function read(key){ try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; } }
 function write(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
@@ -41,6 +41,28 @@ export function recordAlbum(rows, gameWon){
   return news;
 }
 
-/* ---------- Preferences and reset ---------- */
-// Clears the whole account: stats and the album
-export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ localStorage.removeItem(ALBUM_KEY); }catch(e){} }
+/* ---------- Achievement counters: {sweeps, tortoiseDrafted, ..., maxLeftWin} ---------- */
+function loadCounters(){ const v=read(ACH_KEY); return v && typeof v==="object" ? v : {}; }
+// Adds one game's counters (maxLeftWin keeps the best value; the rest add up)
+export function recordCounters(add){
+  const c=loadCounters();
+  for(const [k,v] of Object.entries(add)) c[k] = k==="maxLeftWin" ? Math.max(c[k]||0, v) : (c[k]||0)+v;
+  write(ACH_KEY, c);
+}
+// Everything the achievements look at. Wins, streak and album come from the stats and album already saved.
+export function loadFacts(){
+  const c=loadCounters(), s=loadStats("hard"), alb=loadAlbum();
+  const animals=Object.values(alb);
+  const num=k=>c[k]||0;
+  return {
+    wins:s.wins, bestStreak:s.best,
+    albumUnlocked: animals.filter(e=>e.won>0).length,
+    bestAllRound: Math.max(0, ...animals.map(e=>Object.values(e.sports||{}).filter(sp=>sp.won>0).length)),
+    sweeps:num("sweeps"), tortoiseDrafted:num("tortoiseDrafted"), tortoiseWins:num("tortoiseWins"),
+    tortoiseSportWins:num("tortoiseSportWins"), zeroLeftWins:num("zeroLeftWins"), closeWins:num("closeWins"), maxLeftWin:num("maxLeftWin"),
+  };
+}
+
+/* ---------- Reset ---------- */
+// Clears the whole account: stats, album and achievements
+export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ localStorage.removeItem(ALBUM_KEY); localStorage.removeItem(ACH_KEY); }catch(e){} }
