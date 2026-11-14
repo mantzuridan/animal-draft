@@ -1,7 +1,8 @@
 // Player progress: stats per bot level, the animal album and achievement counters.
 // Stored in this browser only (localStorage). Later this module is the one place to swap for a server account.
 
-const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album", ACH_KEY="animalDraft.ach";
+const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album", ACH_KEY="animalDraft.ach",
+      WALLET_KEY="animalDraft.wallet", SKINS_KEY="animalDraft.skins";
 
 function read(key){ try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; } }
 function write(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
@@ -63,6 +64,33 @@ export function loadFacts(){
   };
 }
 
+/* ---------- Wallet: {stars, medalsPaid} ---------- */
+export function loadWallet(){ const v=read(WALLET_KEY); return {stars:(v&&v.stars)||0, medalsPaid:(v&&v.medalsPaid)||0}; }
+export function addStars(n){ const w=loadWallet(); w.stars+=n; write(WALLET_KEY,w); return w.stars; }
+// Pays the stars for medals not paid yet (also medals earned before stars existed); returns how many were added
+export function syncMedalStars(total){
+  const w=loadWallet(), add=Math.max(0,total-w.medalsPaid);
+  if(add){ w.stars+=add; w.medalsPaid=total; write(WALLET_KEY,w); }
+  return add;
+}
+
+/* ---------- Skins: {owned:{[packId]:[animalId...]}, equip:{[animalId]:packId}} ---------- */
+export function loadSkins(){ const v=read(SKINS_KEY)||{}; return {owned:v.owned||{}, equip:v.equip||{}}; }
+export const owns = (sk, packId, id) => packId==="base" || (sk.owned[packId]||[]).includes(id);
+export const ownedCount = (sk, packId) => (sk.owned[packId]||[]).length;
+// The pack an animal is shown in (falls back to the base look)
+export function equipped(sk, id){ const p=sk.equip[id]; return p && owns(sk,p,id) ? p : "base"; }
+// Buys skins (ids) of a pack for `price` stars. Returns false if there aren't enough stars.
+export function buySkins(packId, ids, price){
+  const w=loadWallet(); if(w.stars<price) return false;
+  const sk=loadSkins(), list=sk.owned[packId]||(sk.owned[packId]=[]);
+  for(const id of ids) if(!list.includes(id)) list.push(id);
+  w.stars-=price; write(WALLET_KEY,w); write(SKINS_KEY,sk); return true;
+}
+export function equip(id, packId){ const sk=loadSkins(); if(!owns(sk,packId,id)) return; sk.equip[id]=packId; write(SKINS_KEY,sk); }
+// Puts a pack on every animal that owns a skin from it
+export function equipAll(packId, allIds){ const sk=loadSkins(); for(const id of allIds) if(owns(sk,packId,id)) sk.equip[id]=packId; write(SKINS_KEY,sk); }
+
 /* ---------- Reset ---------- */
-// Clears the whole account: stats, album and achievements
-export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ localStorage.removeItem(ALBUM_KEY); localStorage.removeItem(ACH_KEY); }catch(e){} }
+// Clears the whole account: stats, album, achievements, stars and skins
+export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ for(const k of [ALBUM_KEY,ACH_KEY,WALLET_KEY,SKINS_KEY]) localStorage.removeItem(k); }catch(e){} }

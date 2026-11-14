@@ -3,15 +3,17 @@
 import * as E from "./engine.js";
 import * as Save from "./save.js";
 import * as Ach from "./achievements.js";
+import * as Sk from "./skins.js";
 const TORTOISE_ID = E.ALL_ANIMALS.find(a=>a.name==="Tortoise").id;
 
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
-// Animal pictures: img/animals/<name without spaces>.png (a few names are shortened)
-const PIC_FILE = {"grizzlybear":"grizzly","komododragon":"komodo"};
-const picSrc = a => { const k=a.name.toLowerCase().replace(/ /g,""); return `img/animals/${PIC_FILE[k]||k}.png`; };
-const pic = a => `<img class="pic" src="${picSrc(a)}" alt="${a.name}" draggable="false">`;
-const ipic = a => `<img class="ipic" src="${picSrc(a)}" alt="">`;
+// Animal pictures in the player's chosen skin (or in a given pack)
+const skinOf = a => Save.equipped(Save.loadSkins(), a.id);
+const picSrc = (a, packId=skinOf(a)) => Sk.skinSrc(a, packId);
+const pxClass = packId => Sk.packById(packId).pixel ? " px" : "";
+const pic = (a, packId=skinOf(a)) => `<img class="pic${pxClass(packId)}" src="${picSrc(a,packId)}" alt="${a.name}" draggable="false">`;
+const ipic = a => `<img class="ipic${pxClass(skinOf(a))}" src="${picSrc(a)}" alt="">`;
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 let toastT;
 function toast(msg, ms=1500){ const t=$("toast"); t.innerHTML=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),ms); }
@@ -234,9 +236,11 @@ async function startResults(){
   show("results");
   const list=$("resList"); list.innerHTML=""; $("banner").textContent=""; $("resBtns").style.visibility="hidden";
   let ys=0, bs=0; setScore(0,0);
+  // In the final match the bot's animals wear random skins from every pack
+  const botSkin = () => Sk.SKIN_PACKS[Math.floor(Math.random()*Sk.SKIN_PACKS.length)].id;
   for(const r of res.rows){
     const row=document.createElement("div"); row.className="res";
-    const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${pic(a)}</span><span class="n">${a.name}</span></div>`;
+    const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${side==="bot"?pic(a,botSkin()):pic(a)}</span><span class="n">${a.name}</span></div>`;
     row.innerHTML = cell(r.you,"you") + `<div class="mid"><b>${r.sport.icon}</b>${r.sport.name}${r.close?'<br><span class="close">Close match!</span>':""}</div>` + cell(r.bot,"bot");
     list.appendChild(row);
     await sleep(80); if(!alive(t)) return;
@@ -255,8 +259,13 @@ async function startResults(){
     if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>ipic(a)+" "+a.name).join(", ")}</b>`);
     news.firstSport.forEach(({animal,sport})=>lines.push(`🏅 ${ipic(animal)} ${animal.name} won its first ${sport.name}!`));
     Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID));
-    Ach.newlyDone(factsBefore, Save.loadFacts()).forEach(({ach,tier})=>
-      lines.push(`${Ach.TIER_ICONS[tier]} <b>${ach.name}</b>: ${ach.tiers[tier].text}`));
+    const factsAfter=Save.loadFacts();
+    Ach.newlyDone(factsBefore, factsAfter).forEach(({ach,tier})=>
+      lines.push(`${Ach.TIER_ICONS[tier]} <b>${ach.name}</b>: ${ach.tiers[tier].text} <span class="starsTag">+${Sk.MEDAL_STARS[tier]} ⭐</span>`));
+    const earned=Sk.gameStars(res); Save.addStars(earned);
+    const medal=Save.syncMedalStars(Sk.medalStarsTotal(factsAfter));
+    $("banner").innerHTML += `<div class="stars-earned">⭐ +${earned+medal} stars</div>`;
+    renderStars();
     if(lines.length) $("banner").innerHTML += `<div class="album-news">${lines.join("<br>")}</div>`;
   }
   $("resBtns").style.visibility="visible";
@@ -308,8 +317,135 @@ function showAlbumAnimal(a){
     box.appendChild(d);
   });
   $("adHint").textContent = open ? "🏅 = this animal has won in that sport" : "Win a game with this animal in your team to unlock it.";
+  renderAnimalSkins(a, $("adSkins"), ()=>showAlbumAnimal(a));
   show("animal");
 }
+// Row of the skins the player owns for one animal; tapping one puts it on
+function renderAnimalSkins(a, box, onChange, onMore=()=>openShopAnimal(a)){
+  const sk=Save.loadSkins(), cur=Save.equipped(sk,a.id);
+  const owned=Sk.SKIN_PACKS.filter(p=>Save.owns(sk,p.id,a.id));
+  box.innerHTML=`<div class="skin-row">`+owned.map(p=>
+    `<button type="button" class="skin-opt${p.id===cur?" on":""}" data-pack="${p.id}"><span class="e">${pic(a,p.id)}</span><span>${p.name}</span></button>`).join("")+
+    `<button type="button" class="skin-opt more" data-more="1"><span class="e big">🛒</span><span>More</span></button></div>`;
+  box.querySelectorAll(".skin-opt").forEach(b=>b.onclick=()=>{
+    if(b.dataset.more){ onMore(); return; }
+    Save.equip(a.id, b.dataset.pack); onChange();
+  });
+}
+
+/* ---------- Stars ---------- */
+function renderStars(){ const s=Save.loadWallet().stars; document.querySelectorAll(".starsVal").forEach(e=>e.textContent=s.toLocaleString("en-US")); }
+
+/* ---------- Bottom sheet (preview, buy, choose) ---------- */
+function openSheet(html){ $("sheetCard").innerHTML=html; $("sheet").classList.add("on"); }
+function closeSheet(){ $("sheet").classList.remove("on"); }
+$("sheet").onclick=e=>{ if(e.target.id==="sheet") closeSheet(); };
+
+/* ---------- Shop ---------- */
+let shopTab="packs", shopBack=null;   // shopBack: where the shop's ✕ returns to
+const ALL_IDS = () => E.ALL_ANIMALS.map(a=>a.id);
+const SELL = () => Sk.SKIN_PACKS.filter(p=>p.price>0);
+function openShop(back){ shopBack=back||null; renderStars(); renderShop(); show("shop"); }
+function renderShop(){
+  document.querySelectorAll("#shopTabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===shopTab));
+  const box=$("shopBody"), sk=Save.loadSkins(), total=E.ALL_ANIMALS.length;
+  if(shopTab==="packs"){
+    box.innerHTML=SELL().map(p=>{
+      const n=Save.ownedCount(sk,p.id), price=Sk.packPriceFor(p,n,total);
+      const prev=["Lion","Elephant","Panda","Dolphin"].map(nm=>pic(E.ALL_ANIMALS.find(a=>a.name===nm),p.id)).join("");
+      return `<div class="pack card"><div class="pack-top"><b>${p.icon} ${p.name}</b><span class="muted">${n} / ${total} owned</span></div>
+        <div class="pack-prev">${prev}</div>
+        <div class="pack-btns"><button class="btn ghost small" data-browse="${p.id}">Browse · ${p.price} ⭐ each</button>
+        ${price ? `<button class="btn small" data-buypack="${p.id}">Whole pack · ${price.toLocaleString("en-US")} ⭐</button>` : `<button class="btn small" disabled>✓ Complete</button>`}</div></div>`;
+    }).join("");
+    box.querySelectorAll("[data-browse]").forEach(b=>b.onclick=()=>renderShopPack(b.dataset.browse));
+    box.querySelectorAll("[data-buypack]").forEach(b=>b.onclick=()=>askBuyPack(Sk.packById(b.dataset.buypack)));
+  } else {
+    box.innerHTML=`<div class="album-grid">`+E.ALL_ANIMALS.map(a=>{
+      const n=SELL().filter(p=>Save.owns(sk,p.id,a.id)).length;
+      return `<div class="acard" data-id="${a.id}"><div class="e">${pic(a,"base")}</div><div class="n">${a.name}</div><div class="medals">${n}/${SELL().length}</div></div>`;
+    }).join("")+`</div>`;
+    box.querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>renderShopAnimal(E.ALL_ANIMALS[+d.dataset.id]));
+  }
+}
+// One pack: every animal in that skin
+function renderShopPack(packId){
+  const p=Sk.packById(packId), sk=Save.loadSkins();
+  $("shopBody").innerHTML=`<button class="linkbtn" id="shopUp">‹ All packs</button><div class="hint">${p.icon} ${p.name} · ${p.price} ⭐ each</div><div class="album-grid">`+
+    E.ALL_ANIMALS.map(a=>`<div class="acard${Save.owns(sk,p.id,a.id)?" owned":""}" data-id="${a.id}"><div class="e">${pic(a,p.id)}</div><div class="n">${a.name}</div><div class="medals">${Save.owns(sk,p.id,a.id)?"✓":p.price+"⭐"}</div></div>`).join("")+`</div>`;
+  $("shopUp").onclick=renderShop;
+  $("shopBody").querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>askBuySkin(E.ALL_ANIMALS[+d.dataset.id], p, ()=>renderShopPack(packId)));
+}
+// One animal: every skin it can wear
+function renderShopAnimal(a){
+  const sk=Save.loadSkins();
+  $("shopBody").innerHTML=`<button class="linkbtn" id="shopUp">‹ All animals</button><div class="hint">${a.name}</div><div class="album-grid">`+
+    Sk.SKIN_PACKS.map(p=>`<div class="acard${Save.owns(sk,p.id,a.id)?" owned":""}" data-pack="${p.id}"><div class="e">${pic(a,p.id)}</div><div class="n">${p.name}</div><div class="medals">${Save.owns(sk,p.id,a.id)?"✓":p.price+"⭐"}</div></div>`).join("")+`</div>`;
+  $("shopUp").onclick=renderShop;
+  $("shopBody").querySelectorAll("[data-pack]").forEach(d=>d.onclick=()=>askBuySkin(a, Sk.packById(d.dataset.pack), ()=>renderShopAnimal(a)));
+}
+function openShopAnimal(a){ shopTab="animals"; openShop("animal:"+a.id); renderShopAnimal(a); }
+// Preview a skin; buy it, or put it on if it's already owned
+function askBuySkin(a, p, refresh){
+  const sk=Save.loadSkins(), have=Save.owns(sk,p.id,a.id), stars=Save.loadWallet().stars, on=Save.equipped(sk,a.id)===p.id;
+  openSheet(`<div class="sheet-pic">${pic(a,p.id)}</div><div class="aname">${a.name}</div><div class="muted">${p.icon} ${p.name} skin</div>`+
+    (have ? `<button class="btn green" id="sheetGo" ${on?"disabled":""}>${on?"✓ In use":"Use this skin"}</button>`
+          : `<button class="btn green" id="sheetGo" ${stars<p.price?"disabled":""}>Buy · ${p.price} ⭐</button>`+
+            (stars<p.price ? `<div class="hint">You need ${p.price-stars} more ⭐</div>` : ""))+
+    `<button class="btn ghost" id="sheetNo">Close</button>`);
+  $("sheetNo").onclick=closeSheet;
+  $("sheetGo").onclick=()=>{
+    if(have){ Save.equip(a.id,p.id); toast(`${a.name} is now in ${p.name}!`); closeSheet(); refresh(); return; }
+    if(!Save.buySkins(p.id,[a.id],p.price)) return;
+    renderStars(); refresh(); askBuySkin(a,p,refresh); toast(`🎉 ${p.name} ${a.name} is yours!`);
+  };
+}
+function askBuyPack(p){
+  const total=E.ALL_ANIMALS.length, sk=Save.loadSkins(), n=Save.ownedCount(sk,p.id), price=Sk.packPriceFor(p,n,total), stars=Save.loadWallet().stars;
+  const prev=E.ALL_ANIMALS.slice(0,8).map(a=>pic(a,p.id)).join("");
+  openSheet(`<div class="pack-prev big">${prev}</div><div class="aname">${p.icon} ${p.name} pack</div>`+
+    `<div class="muted">All ${total-n} skins you don't have yet${n>10?" (priced one by one, since you already own "+n+")":""}</div>`+
+    `<button class="btn green" id="sheetGo" ${stars<price?"disabled":""}>Buy pack · ${price.toLocaleString("en-US")} ⭐</button>`+
+    (stars<price ? `<div class="hint">You need ${(price-stars).toLocaleString("en-US")} more ⭐</div>` : "")+
+    `<button class="btn ghost" id="sheetNo">Close</button>`);
+  $("sheetNo").onclick=closeSheet;
+  $("sheetGo").onclick=()=>{
+    const missing=E.ALL_ANIMALS.filter(a=>!Save.owns(sk,p.id,a.id)).map(a=>a.id);
+    if(!Save.buySkins(p.id,missing,price)) return;
+    renderStars(); renderShop();
+    openSheet(`<div class="aname">🎉 ${p.name} pack is yours!</div><div class="muted">Put it on every animal now? You can still change single animals later.</div>`+
+      `<button class="btn green" id="sheetGo">Apply to all animals</button><button class="btn ghost" id="sheetNo">Not now</button>`);
+    $("sheetNo").onclick=closeSheet;
+    $("sheetGo").onclick=()=>{ Save.equipAll(p.id, ALL_IDS()); closeSheet(); toast(`All animals are now ${p.name}!`); };
+  };
+}
+document.querySelectorAll("#shopTabs button").forEach(b=>b.onclick=()=>{ shopTab=b.dataset.tab; renderShop(); });
+$("shopBtn").onclick=()=>openShop();
+$("shopClose").onclick=()=>{ const b=shopBack; shopBack=null;
+  if(b && b.startsWith("animal:")) return showAlbumAnimal(E.ALL_ANIMALS[+b.split(":")[1]]);
+  if(b==="wardrobe") return openWardrobe();
+  goHome(); };
+
+/* ---------- Wardrobe: choose which skin each animal wears ---------- */
+function openWardrobe(){ renderWardrobe(); show("wardrobe"); }
+function renderWardrobe(){
+  const sk=Save.loadSkins(), total=E.ALL_ANIMALS.length;
+  const packs=Sk.SKIN_PACKS.filter(p=>p.id==="base" || Save.ownedCount(sk,p.id)>0);
+  $("wardAll").innerHTML=packs.map(p=>`<button type="button" class="btn ghost small" data-all="${p.id}">${p.icon} ${p.name}${p.id==="base"?"":` (${Save.ownedCount(sk,p.id)}/${total})`}</button>`).join("");
+  $("wardAll").querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>{ Save.equipAll(b.dataset.all, ALL_IDS()); renderWardrobe(); toast(`${Sk.packById(b.dataset.all).name} applied to every animal that has it`); });
+  $("wardGrid").innerHTML=E.ALL_ANIMALS.map(a=>`<div class="acard" data-id="${a.id}"><div class="e">${pic(a)}</div><div class="n">${a.name}</div></div>`).join("");
+  $("wardGrid").querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>{
+    const a=E.ALL_ANIMALS[+d.dataset.id];
+    openSheet(`<div class="sheet-pic">${pic(a)}</div><div class="aname">${a.name}</div><div id="sheetSkins"></div><button class="btn ghost" id="sheetNo">Done</button>`);
+    const more=()=>{ closeSheet(); shopTab="animals"; openShop("wardrobe"); renderShopAnimal(a); };
+    const redraw=()=>{ $("sheetCard").querySelector(".sheet-pic").innerHTML=pic(a); renderAnimalSkins(a, $("sheetSkins"), redraw, more); renderWardrobeGridOnly(); };
+    renderAnimalSkins(a, $("sheetSkins"), redraw, more);
+    $("sheetNo").onclick=closeSheet;
+  });
+}
+function renderWardrobeGridOnly(){ document.querySelectorAll("#wardGrid [data-id]").forEach(d=>{ d.querySelector(".e").innerHTML=pic(E.ALL_ANIMALS[+d.dataset.id]); }); }
+$("wardBtn").onclick=openWardrobe;
+$("wardShop").onclick=()=>openShop("wardrobe");
 $("albumBtn").onclick=()=>{ renderAlbum(); show("album"); };
 
 /* ---------- Achievements screen ---------- */
@@ -364,7 +500,7 @@ function renderGameSports(){
 }
 
 /* ---------- Navigation ---------- */
-function goHome(){ token++; G=null; stopTimer(); show("home"); }
+function goHome(){ token++; G=null; stopTimer(); closeSheet(); renderStars(); show("home"); }
 $("playBtn").onclick=()=>{ level="hard"; newGame(); };
 $("practiceBtn").onclick=()=>{ level="easy"; newGame(); };
 $("againBtn").onclick=newGame;   // same mode as the game just played
@@ -373,12 +509,16 @@ $("statsBtn").onclick=()=>{ renderStats(); show("stats"); };
 $("rulesBtn").onclick=()=>show("rules");
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
-$("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats and the animal album)? This can't be undone.")){ Save.resetAccount(); renderStats(); } };
+$("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats, album, achievements, stars and skins)? This can't be undone.")){ Save.resetAccount(); renderStats(); } };
 
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
 // Hook for automated tests in the browser (read-only view of the current game)
-window.__ad = { E, Save, get G(){ return G; }, get A(){ return A; }, newGame, goHome, startResults, renderAssign, setLevel(l){ level=l; } };
+window.__ad = { E, Save, Sk, get G(){ return G; }, get A(){ return A; }, newGame, goHome, startResults, renderAssign, setLevel(l){ level=l; } };
 
 // Load all animal pictures in the background so reveals don't pop in
 setTimeout(()=>E.ALL_ANIMALS.forEach(a=>{ const i=new Image(); i.src=picSrc(a); }), 1500);
+
+// Stars for medals earned before stars existed (and any not paid yet)
+Save.syncMedalStars(Sk.medalStarsTotal(Save.loadFacts()));
+renderStars();
