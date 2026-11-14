@@ -142,6 +142,29 @@ h2{margin:0;font-size:22px;font-weight:600}
 .rules p{margin:0 0 10px;line-height:1.4}
 .rules p:last-child{margin:0}
 
+/* Album */
+.small3{font-size:16px;padding:12px 6px}
+.album-head{display:grid;gap:8px}
+.album-count{font-size:20px;font-weight:700;text-align:center}
+.album-bar{height:12px;background:#e7eef6;border-radius:6px;overflow:hidden}
+.album-bar i{display:block;height:100%;background:var(--gold);border-radius:6px;transition:width .4s}
+.album-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.acard{background:#fff;border-radius:14px;padding:8px 2px 6px;text-align:center;cursor:pointer;box-shadow:0 3px 0 #d7e2ee;position:relative}
+.acard .e{font-size:34px;line-height:1.15}
+.acard .n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px}
+.acard.locked{background:rgba(255,255,255,.55);box-shadow:none}
+.acard.locked .e{filter:brightness(0);opacity:.28}
+.acard.locked .n{color:var(--muted)}
+.acard .medals{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;color:#b8860b}
+.sline{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:10px 12px}
+.sline .sicon{font-size:26px;width:36px;text-align:center}
+.sline .sname{flex:1;font-weight:600}
+.sline .rec{font-size:14px;color:var(--muted);text-align:right}
+.sline .mark{font-size:22px;width:28px;text-align:center}
+.sline.won{background:#fff8dc}
+.album-news{font-size:16px;font-weight:500;margin-top:10px;background:#fff;border-radius:14px;padding:10px;line-height:1.5}
+#adEmoji.locked{filter:brightness(0);opacity:.28}
+
 .confetti{position:fixed;top:-20px;font-size:26px;pointer-events:none;animation:fall linear forwards;z-index:30}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
 </style>
@@ -160,8 +183,9 @@ h2{margin:0;font-size:22px;font-weight:600}
     </div>
     <button class="btn green" id="playBtn">▶ Play</button>
     <div class="row">
-      <button class="btn ghost grow" id="statsBtn">📊 Stats</button>
-      <button class="btn ghost grow" id="rulesBtn">📖 Rules</button>
+      <button class="btn ghost grow small3" id="statsBtn">📊 Stats</button>
+      <button class="btn ghost grow small3" id="albumBtn">🗂️ Album</button>
+      <button class="btn ghost grow small3" id="rulesBtn">📖 Rules</button>
     </div>
   </section>
 
@@ -237,7 +261,30 @@ h2{margin:0;font-size:22px;font-weight:600}
       <div class="stat"><b id="stBest">0</b><span>Best win streak</span></div>
     </div>
     <div class="grow"></div>
-    <button class="btn ghost" id="resetBtn">Reset stats</button>
+    <button class="btn ghost" id="resetBtn">Reset account</button>
+  </section>
+
+  <!-- ALBUM -->
+  <section id="album" class="screen">
+    <div class="topbar"><div class="title">🗂️ Animal Album</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
+    <div class="album-head card">
+      <div class="album-count" id="albumCount"></div>
+      <div class="album-bar"><i id="albumBar"></i></div>
+      <div class="hint">Win a game vs the 🔥 Hard bot with an animal in your team to unlock it.</div>
+    </div>
+    <div class="album-grid" id="albumGrid"></div>
+  </section>
+
+  <!-- ANIMAL DETAIL -->
+  <section id="animal" class="screen">
+    <div class="topbar"><div class="title">🗂️ Album</div><button class="iconbtn" id="animalBack" aria-label="Back">✕</button></div>
+    <div class="card center">
+      <div class="big-emoji" id="adEmoji"></div>
+      <div class="aname" id="adName"></div>
+      <div class="muted" id="adSummary"></div>
+    </div>
+    <div class="sport-slots" id="adSports"></div>
+    <div class="hint" id="adHint"></div>
   </section>
 
   <!-- RULES -->
@@ -250,6 +297,7 @@ h2{margin:0;font-size:22px;font-weight:600}
       <p><b>4. Pick your athletes.</b> Put one animal in each of the 5 sports. You have 90 seconds, and the bot picks in secret.</p>
       <p><b>5. The games.</b> Each sport is your animal vs the bot's. Higher score wins; a tie is a coin flip. Win 3 sports to win the game!</p>
       <p><b>Bot level.</b> 🐣 Easy is a simple bot. 🔥 Hard manages its budget, values animals by what its team still needs, and picks its athletes carefully. Stats are kept separately for each level.</p>
+      <p><b>🗂️ Album.</b> Every animal starts as a shadow. Win a game vs the 🔥 Hard bot with it in your team to unlock it. Tap an animal to see its record in each sport.</p>
       <p class="muted">Don't wait too long: after 20 seconds the game bids +1 for you.</p>
     </div>
   </section>
@@ -358,6 +406,27 @@ function saveStats(lvl,s){ const all=loadAllStats(); all[lvl]=s; try{ localStora
 let statsLevel="easy";
 function renderStats(){ const s=loadStats(statsLevel); $("stGames").textContent=s.games; $("stWins").textContent=s.wins; $("stStreak").textContent=s.streak; $("stBest").textContent=s.best;
   setSeg("statsSeg", statsLevel); }
+
+/* ---------- Album (only games vs the Hard bot count) ---------- */
+// {[animalId]: {played, won, sports:{[sportIndex]:{played, won}}}}
+const ALBUM_KEY="animalDraft.album";
+function loadAlbum(){ try{ const v=JSON.parse(localStorage.getItem(ALBUM_KEY)); if(v && typeof v==="object") return v; }catch(e){} return {}; }
+function saveAlbum(a){ try{ localStorage.setItem(ALBUM_KEY, JSON.stringify(a)); }catch(e){} }
+const albumEntry=(alb,id)=> alb[id] || (alb[id]={played:0, won:0, sports:{}});
+// Records one finished game; returns what's new: unlocked animals and first wins in a sport
+function recordAlbum(plan, sportWinners, gameWon){
+  const alb=loadAlbum(), news={unlocked:[], firstSport:[]};
+  plan.forEach((a,i)=>{
+    const e=albumEntry(alb,a.id), sp=e.sports[i]||(e.sports[i]={played:0,won:0});
+    e.played++; sp.played++;
+    if(sportWinners[i]==="you"){ if(sp.won===0) news.firstSport.push({a,i}); sp.won++; }
+    if(gameWon){ if(e.won===0) news.unlocked.push(a); e.won++; }
+  });
+  saveAlbum(alb);
+  // An animal that just unlocked doesn't also need its sport line
+  news.firstSport=news.firstSport.filter(x=>!news.unlocked.includes(x.a));
+  return news;
+}
 
 /* Bot level choice */
 let level="easy"; try{ if(localStorage.getItem(LEVEL_KEY)==="hard") level="hard"; }catch(e){}
@@ -634,7 +703,7 @@ async function startResults(){
   const t=G.token;
   show("results");
   const list=$("resList"); list.innerHTML=""; $("banner").textContent=""; $("resBtns").style.visibility="hidden";
-  let ys=0, bs=0; setScore(0,0);
+  let ys=0, bs=0; setScore(0,0); const winners=[];
   for(let i=0;i<SPORTS.length;i++){
     const sp=SPORTS[i], ya=A.plan[i], ba=G.botPlan[i];
     const yv=ya.s[i], bv=ba.s[i];
@@ -647,13 +716,19 @@ async function startResults(){
     await sleep(80); if(!alive(t)) return;
     row.classList.add("show");
     await sleep(close?1300:950); if(!alive(t)) return;
-    winner==="you" ? ys++ : bs++;
+    winners.push(winner); winner==="you" ? ys++ : bs++;
     setScore(ys,bs);
   }
   const won = ys>bs;
   const s=loadStats(G.level); s.games++; if(won){ s.wins++; s.streak++; s.best=Math.max(s.best,s.streak); } else s.streak=0; saveStats(G.level,s);
   $("banner").innerHTML = won ? "🏆 You win!" : "🤖 The bot wins";
   if(won){ confetti(); if(s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
+  if(G.level==="hard"){
+    const news=recordAlbum(A.plan, winners, won), lines=[];
+    if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>a.emoji+" "+a.name).join(", ")}</b>`);
+    news.firstSport.forEach(({a,i})=>lines.push(`🏅 ${a.emoji} ${a.name} won its first ${SPORTS[i].name}!`));
+    if(lines.length) $("banner").innerHTML += `<div class="album-news">${lines.join("<br>")}</div>`;
+  }
   $("resBtns").style.visibility="visible";
   G=null; // game finished
 }
@@ -668,6 +743,40 @@ function confetti(){
   }
 }
 
+/* ---------- Album screens ---------- */
+function renderAlbum(){
+  const alb=loadAlbum(), unlocked=ANIMALS.filter(a=>alb[a.id] && alb[a.id].won>0).length;
+  $("albumCount").textContent=`${unlocked} / ${ANIMALS.length} animals`;
+  $("albumBar").style.width=(100*unlocked/ANIMALS.length)+"%";
+  const g=$("albumGrid"); g.innerHTML="";
+  ANIMALS.forEach(a=>{
+    const e=alb[a.id], open=e && e.won>0, seen=e && e.played>0;
+    const d=document.createElement("div");
+    d.className="acard"+(open?"":" locked");
+    d.innerHTML=`<div class="e">${a.emoji}</div><div class="n">${seen?a.name:"???"}</div>`;
+    d.onclick=()=>showAnimal_(a);
+    g.appendChild(d);
+  });
+}
+function showAnimal_(a){
+  const e=loadAlbum()[a.id], open=e && e.won>0, seen=e && e.played>0;
+  $("adEmoji").textContent=a.emoji; $("adEmoji").classList.toggle("locked",!open);
+  $("adName").textContent= seen ? a.name : "???";
+  $("adSummary").textContent= seen ? `Played ${e.played} · Won ${e.won} game${e.won===1?"":"s"}` : "You haven't drafted this animal yet.";
+  const box=$("adSports"); box.innerHTML="";
+  if(seen) SPORTS.forEach((sp,i)=>{
+    const r=e.sports[i]||{played:0,won:0};
+    const d=document.createElement("div"); d.className="sline"+(r.won>0?" won":"");
+    d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
+      `<div class="rec">${r.played ? `Won ${r.won} of ${r.played}` : "Not tried"}</div><div class="mark">${r.won>0?"🏅":""}</div>`;
+    box.appendChild(d);
+  });
+  $("adHint").textContent = open ? "🏅 = this animal has won in that sport" : "Win a game vs the 🔥 Hard bot with this animal in your team to unlock it.";
+  show("animal");
+}
+$("albumBtn").onclick=()=>{ renderAlbum(); show("album"); };
+$("animalBack").onclick=()=>{ renderAlbum(); show("album"); };
+
 /* ---------- Navigation ---------- */
 function goHome(){ gameToken++; G=null; stopTimer(); show("home"); }
 $("playBtn").onclick=newGame;
@@ -680,7 +789,7 @@ setSeg("levelSeg",level);
 $("rulesBtn").onclick=()=>show("rules");
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
-$("resetBtn").onclick=()=>{ if(confirm("Reset all stats (Easy and Hard)? This can't be undone.")){ try{ localStorage.setItem(STATS_KEY, JSON.stringify({easy:emptyStats(),hard:emptyStats()})); }catch(e){} renderStats(); } };
+$("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats for both levels and the animal album)? This can't be undone.")){ try{ localStorage.setItem(STATS_KEY, JSON.stringify({easy:emptyStats(),hard:emptyStats()})); localStorage.removeItem(ALBUM_KEY); }catch(e){} renderStats(); } };
 $("homeSports").innerHTML=SPORTS.map(s=>`<div><b>${s.icon}</b>${s.name.replace("100m ","")}</div>`).join("");
 
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
