@@ -7,6 +7,7 @@ export const SKIN_PACKS = [
   { id:"base",  name:"Athletes", icon:"🏃", price:0,   packPrice:0,    dir:"img/animals" },
   { id:"baby",  name:"Babies",   icon:"🍼", price:15,  packPrice:450,  dir:"img/skins/baby" },
   { id:"pixel", name:"Pixel",    icon:"👾", price:100, packPrice:3000, dir:"img/skins/pixel", pixel:true },
+  { id:"clay",  name:"Clay",     icon:"🧱", price:100, packPrice:3000, dir:"img/skins/clay" },
 ];
 export const packById = id => SKIN_PACKS.find(p=>p.id===id) || SKIN_PACKS[0];
 
