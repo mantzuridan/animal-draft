@@ -7,6 +7,14 @@ import { showAlbumAnimal, renderAnimalSkins } from "./collection.js";
 
 const ALL_IDS = () => E.ALL_ANIMALS.map(a=>a.id);
 const SELL = () => Sk.SKIN_PACKS.filter(p=>p.price>0);
+// Mystery skin: a random skin from 100+ star skins the player doesn't own (Gold only where that animal unlocked it), each equally likely
+const MYSTERY_PRICE=80, MYSTERY_MIN=100;
+function mysteryPool(){
+  const sk=Save.loadSkins(), alb=Save.loadAlbum(), pool=[];
+  for(const p of Sk.SKIN_PACKS) if(p.price>=MYSTERY_MIN)
+    for(const a of E.ALL_ANIMALS) if(!Save.owns(sk,p.id,a.id) && Sk.canBuy(p, alb[a.id])) pool.push({p,a});
+  return pool;
+}
 
 /* ---------- Shop ---------- */
 let shopTab="packs", shopBack=null;   // shopBack: where the shop's ✕ returns to
@@ -15,7 +23,7 @@ function renderShop(){
   document.querySelectorAll("#shopTabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===shopTab));
   const box=$("shopBody"), sk=Save.loadSkins(), total=E.ALL_ANIMALS.length;
   if(shopTab==="packs"){
-    box.innerHTML=SELL().map(p=>{
+    box.innerHTML=mysteryCard()+SELL().map(p=>{
       const n=Save.ownedCount(sk,p.id), price=Sk.packPriceFor(p,n,total);
       const prev=["Lion","Elephant","Panda","Dolphin"].map(nm=>pic(E.ALL_ANIMALS.find(a=>a.name===nm),p.id)).join("");
       return `<div class="pack card"><div class="pack-top"><b>${p.icon} ${p.name}</b><span class="muted">${n} / ${total} owned</span></div>
@@ -24,19 +32,20 @@ function renderShop(){
         <div class="pack-btns${p.needSports?" one":""}"><button class="btn ghost small" data-browse="${p.id}">Browse · ${p.price} ⭐ each</button>
         ${p.needSports ? "" : price ? `<button class="btn small" data-buypack="${p.id}">Whole pack · ${price.toLocaleString("en-US")} ⭐</button>` : `<button class="btn small" disabled>✓ Complete</button>`}</div></div>`;
     }).join("");
+    $("mysteryBtn").onclick=askMystery;
     box.querySelectorAll("[data-browse]").forEach(b=>b.onclick=()=>renderShopPack(b.dataset.browse));
     box.querySelectorAll("[data-buypack]").forEach(b=>b.onclick=()=>askBuyPack(Sk.packById(b.dataset.buypack)));
   } else {
     box.innerHTML=`<div class="album-grid">`+E.ALL_ANIMALS.map(a=>{
       const n=SELL().filter(p=>Save.owns(sk,p.id,a.id)).length;
-      return `<div class="acard" data-id="${a.id}"><div class="e">${pic(a,"base")}</div><div class="n">${a.name}</div><div class="medals">${n}/${SELL().length}</div></div>`;
+      return `<div class="acard" data-id="${a.id}"><div class="e">${pic(a)}</div><div class="n">${a.name}</div><div class="medals">${n}/${SELL().length}</div></div>`;
     }).join("")+`</div>`;
     box.querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>renderShopAnimal(E.ALL_ANIMALS[+d.dataset.id]));
   }
 }
 // A shop card's state for one skin: owned, locked (trophy skin not earned yet) or for sale
 function skinCard(sk, alb, a, p){
-  if(Save.owns(sk,p.id,a.id)) return {cls:" owned", tag:"✓"};
+  if(Save.owns(sk,p.id,a.id)) return Save.equipped(sk,a.id)===p.id ? {cls:" owned inuse", tag:"✓ In use"} : {cls:" owned", tag:"✓"};
   if(!Sk.canBuy(p, alb[a.id])) return {cls:" skin-locked", tag:`🔒 ${Sk.sportsWon(alb[a.id])}/${p.needSports}`};
   return {cls:"", tag:p.price+"⭐"};
 }
@@ -80,7 +89,7 @@ function askBuySkin(a, p, refresh){
 }
 function askBuyPack(p){
   const total=E.ALL_ANIMALS.length, sk=Save.loadSkins(), n=Save.ownedCount(sk,p.id), price=Sk.packPriceFor(p,n,total), stars=Save.loadWallet().stars;
-  const prev=E.ALL_ANIMALS.slice(0,8).map(a=>pic(a,p.id)).join("");
+  const prev=[...E.ALL_ANIMALS].sort(()=>Math.random()-.5).slice(0,8).map(a=>pic(a,p.id)).join("");
   openSheet(`<div class="pack-prev big">${prev}</div><div class="aname">${p.icon} ${p.name} pack</div>`+
     `<div class="muted">All ${total-n} skins you don't have yet${n>10?" (priced one by one, since you already own "+n+")":""}</div>`+
     `<button class="btn green" id="sheetGo" ${stars<price?"disabled":""}>Buy pack · ${price.toLocaleString("en-US")} ⭐</button>`+
@@ -124,3 +133,33 @@ function renderWardrobe(){
 function renderWardrobeGridOnly(){ document.querySelectorAll("#wardGrid [data-id]").forEach(d=>{ d.querySelector(".e").innerHTML=pic(E.ALL_ANIMALS[+d.dataset.id]); }); }
 $("wardBtn").onclick=openWardrobe;
 $("wardShop").onclick=()=>openShop("wardrobe");
+
+/* ---------- Mystery skin ---------- */
+function mysteryCard(){
+  const n=mysteryPool().length;
+  return `<div class="pack card mystery"><div class="pack-top"><b>🎁 Mystery skin</b><span class="muted">${n} possible</span></div>
+    <div class="muted small-note">A random skin you don't have yet, from the ${MYSTERY_MIN} ⭐ skins and any Gold you've unlocked. Every one is equally likely.</div>
+    <div class="pack-btns one">${n ? `<button class="btn small" id="mysteryBtn">Open one · ${MYSTERY_PRICE} ⭐</button>` : `<button class="btn small" id="mysteryBtn" disabled>✓ Nothing left to win</button>`}</div></div>`;
+}
+function askMystery(){
+  const stars=Save.loadWallet().stars, n=mysteryPool().length;
+  openSheet(`<div class="sheet-pic mystery-box">🎁</div><div class="aname">Mystery skin</div><div class="muted">${n} skins you don't have can come out</div>`+
+    `<button class="btn green" id="sheetGo" ${stars<MYSTERY_PRICE||!n?"disabled":""}>Open · ${MYSTERY_PRICE} ⭐</button>`+
+    (stars<MYSTERY_PRICE ? `<div class="hint">You need ${MYSTERY_PRICE-stars} more ⭐</div>` : "")+
+    `<button class="btn ghost" id="sheetNo">Close</button>`);
+  $("sheetNo").onclick=closeSheet;
+  $("sheetGo").onclick=()=>{
+    const pool=mysteryPool(); if(!pool.length) return;
+    const {p,a}=pool[Math.floor(Math.random()*pool.length)];
+    if(!Save.buySkins(p.id,[a.id],MYSTERY_PRICE)) return;
+    renderStars(); renderShop();
+    $("sheetCard").querySelector(".mystery-box").classList.add("shake");
+    $("sheetGo").disabled=true;
+    setTimeout(()=>{
+      openSheet(`<div class="sheet-pic reveal">${pic(a,p.id)}</div><div class="aname">🎉 ${a.name}</div><div class="muted">${p.icon} ${p.name} skin · worth ${p.price} ⭐</div>`+
+        `<button class="btn green" id="sheetGo">Use this skin</button><button class="btn ghost" id="sheetNo">Close</button>`);
+      $("sheetNo").onclick=closeSheet;
+      $("sheetGo").onclick=()=>{ Save.equip(a.id,p.id); toast(`${a.name} is now in ${p.name}!`); closeSheet(); renderShop(); };
+    },900);
+  };
+}
