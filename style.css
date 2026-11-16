@@ -181,6 +181,8 @@ h2{margin:0;font-size:22px;font-weight:600}
 .sline.won{background:#fff8dc}
 .album-news{font-size:16px;font-weight:500;margin-top:10px;background:#fff;border-radius:14px;padding:10px;line-height:1.5}
 #adEmoji.locked{filter:brightness(0);opacity:.28}
+.ad-nav{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.ad-arrow{flex:none;width:44px;height:44px;font-size:28px;line-height:1;background:#eef2f8}
 
 /* Stars, shop, skins */
 .pic.px,.ipic.px{image-rendering:pixelated}

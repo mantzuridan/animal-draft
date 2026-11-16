@@ -27,7 +27,11 @@ export function renderAlbum(){
     g.appendChild(d);
   });
 }
+let adCur=null;   // animal shown on the album page (for the ‹ › arrows and swipes)
 export function showAlbumAnimal(a){
+  adCur=a;
+  const idx=E.ALL_ANIMALS.indexOf(a);
+  $("adPos").textContent=`${idx+1} / ${E.ALL_ANIMALS.length}`;
   const alb=Save.loadAlbum(), e=alb[a.id], open=Save.isUnlocked(alb,a.id), seen=e && e.played>0;
   $("adEmoji").innerHTML=pic(a); $("adEmoji").classList.toggle("locked",!open);
   $("adName").textContent= seen ? a.name : "???";
@@ -64,6 +68,15 @@ export function renderAnimalSkins(a, box, onChange, onMore=()=>openShopAnimal(a)
 }
 $("albumBtn").onclick=()=>{ renderAlbum(); show("album"); };
 $("animalBack").onclick=()=>{ renderAlbum(); show("album"); };
+// Next / previous animal in album order (wraps around), by arrow or by swiping the top card sideways
+const stepAnimal=d=>{ const n=E.ALL_ANIMALS.length; showAlbumAnimal(E.ALL_ANIMALS[(E.ALL_ANIMALS.indexOf(adCur)+d+n)%n]); };
+$("adPrev").onclick=()=>stepAnimal(-1);
+$("adNext").onclick=()=>stepAnimal(1);
+let swX=null, swY=0;
+$("adCard").addEventListener("touchstart",ev=>{ swX=ev.touches[0].clientX; swY=ev.touches[0].clientY; },{passive:true});
+$("adCard").addEventListener("touchend",ev=>{ if(swX===null) return;
+  const dx=ev.changedTouches[0].clientX-swX, dy=ev.changedTouches[0].clientY-swY; swX=null;
+  if(Math.abs(dx)>50 && Math.abs(dx)>1.5*Math.abs(dy)) stepAnimal(dx<0?1:-1); },{passive:true});
 
 /* ---------- Achievements ---------- */
 const TIER_LABEL=["Bronze","Silver","Gold","Diamond"];
