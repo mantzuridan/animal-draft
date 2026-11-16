@@ -12,10 +12,10 @@ export const SKIN_PACKS = [
 ];
 export const packById = id => SKIN_PACKS.find(p=>p.id===id) || SKIN_PACKS[0];
 
-// Picture file of an animal in a pack: <dir>/<name without spaces>.png (a few names are shortened)
+// Picture file of an animal in a pack: <dir>/<name without spaces>.webp (a few names are shortened)
 const FILE = {"grizzlybear":"grizzly","komododragon":"komodo"};
 export const fileKey = a => { const k=a.name.toLowerCase().replace(/ /g,""); return FILE[k]||k; };
-export const skinSrc = (a, packId) => `${packById(packId).dir}/${fileKey(a)}.png`;
+export const skinSrc = (a, packId) => `${packById(packId).dir}/${fileKey(a)}.webp`;
 
 // Price of the whole pack for someone who already owns `owned` of its `total` skins.
 // Up to 10 owned: the fixed pack price. Above that: exactly what the missing skins cost one by one.

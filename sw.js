@@ -1,19 +1,55 @@
-// Network-first service worker: always tries the latest version, falls back to cache offline.
-const CACHE = "animal-draft-v11";
-const FILES = ["./", "index.html", "app.js", "engine.js", "save.js", "achievements.js", "skins.js", "manifest.webmanifest", "icon.svg",
-  "img/animals/bison.png","img/animals/camel.png","img/animals/cheetah.png","img/animals/chimpanzee.png","img/animals/crocodile.png","img/animals/dolphin.png","img/animals/eagle.png","img/animals/elephant.png","img/animals/fox.png","img/animals/frog.png","img/animals/giraffe.png","img/animals/gorilla.png","img/animals/grizzly.png","img/animals/hippo.png","img/animals/honeybadger.png","img/animals/horse.png","img/animals/impala.png","img/animals/jaguar.png","img/animals/kangaroo.png","img/animals/komodo.png","img/animals/lion.png","img/animals/moose.png","img/animals/mountaingoat.png","img/animals/ostrich.png","img/animals/otter.png","img/animals/panda.png","img/animals/penguin.png","img/animals/polarbear.png","img/animals/puma.png","img/animals/rabbit.png","img/animals/rhino.png","img/animals/sealion.png","img/animals/shark.png","img/animals/sloth.png","img/animals/squirrel.png","img/animals/tiger.png","img/animals/tortoise.png","img/animals/wildboar.png","img/animals/wolf.png","img/animals/zebra.png",
-  "img/skins/baby/bison.png","img/skins/baby/camel.png","img/skins/baby/cheetah.png","img/skins/baby/chimpanzee.png","img/skins/baby/crocodile.png","img/skins/baby/dolphin.png","img/skins/baby/eagle.png","img/skins/baby/elephant.png","img/skins/baby/fox.png","img/skins/baby/frog.png","img/skins/baby/giraffe.png","img/skins/baby/gorilla.png","img/skins/baby/grizzly.png","img/skins/baby/hippo.png","img/skins/baby/honeybadger.png","img/skins/baby/horse.png","img/skins/baby/impala.png","img/skins/baby/jaguar.png","img/skins/baby/kangaroo.png","img/skins/baby/komodo.png","img/skins/baby/lion.png","img/skins/baby/moose.png","img/skins/baby/mountaingoat.png","img/skins/baby/ostrich.png","img/skins/baby/otter.png","img/skins/baby/panda.png","img/skins/baby/penguin.png","img/skins/baby/polarbear.png","img/skins/baby/puma.png","img/skins/baby/rabbit.png","img/skins/baby/rhino.png","img/skins/baby/sealion.png","img/skins/baby/shark.png","img/skins/baby/sloth.png","img/skins/baby/squirrel.png","img/skins/baby/tiger.png","img/skins/baby/tortoise.png","img/skins/baby/wildboar.png","img/skins/baby/wolf.png","img/skins/baby/zebra.png","img/skins/pixel/bison.png","img/skins/pixel/camel.png","img/skins/pixel/cheetah.png","img/skins/pixel/chimpanzee.png","img/skins/pixel/crocodile.png","img/skins/pixel/dolphin.png","img/skins/pixel/eagle.png","img/skins/pixel/elephant.png","img/skins/pixel/fox.png","img/skins/pixel/frog.png","img/skins/pixel/giraffe.png","img/skins/pixel/gorilla.png","img/skins/pixel/grizzly.png","img/skins/pixel/hippo.png","img/skins/pixel/honeybadger.png","img/skins/pixel/horse.png","img/skins/pixel/impala.png","img/skins/pixel/jaguar.png","img/skins/pixel/kangaroo.png","img/skins/pixel/komodo.png","img/skins/pixel/lion.png","img/skins/pixel/moose.png","img/skins/pixel/mountaingoat.png","img/skins/pixel/ostrich.png","img/skins/pixel/otter.png","img/skins/pixel/panda.png","img/skins/pixel/penguin.png","img/skins/pixel/polarbear.png","img/skins/pixel/puma.png","img/skins/pixel/rabbit.png","img/skins/pixel/rhino.png","img/skins/pixel/sealion.png","img/skins/pixel/shark.png","img/skins/pixel/sloth.png","img/skins/pixel/squirrel.png","img/skins/pixel/tiger.png","img/skins/pixel/tortoise.png","img/skins/pixel/wildboar.png","img/skins/pixel/wolf.png","img/skins/pixel/zebra.png",
-  "img/skins/clay/bison.png","img/skins/clay/camel.png","img/skins/clay/cheetah.png","img/skins/clay/chimpanzee.png","img/skins/clay/crocodile.png","img/skins/clay/dolphin.png","img/skins/clay/eagle.png","img/skins/clay/elephant.png","img/skins/clay/fox.png","img/skins/clay/frog.png","img/skins/clay/giraffe.png","img/skins/clay/gorilla.png","img/skins/clay/grizzly.png","img/skins/clay/hippo.png","img/skins/clay/honeybadger.png","img/skins/clay/horse.png","img/skins/clay/impala.png","img/skins/clay/jaguar.png","img/skins/clay/kangaroo.png","img/skins/clay/komodo.png","img/skins/clay/lion.png","img/skins/clay/moose.png","img/skins/clay/mountaingoat.png","img/skins/clay/ostrich.png","img/skins/clay/otter.png","img/skins/clay/panda.png","img/skins/clay/penguin.png","img/skins/clay/polarbear.png","img/skins/clay/puma.png","img/skins/clay/rabbit.png","img/skins/clay/rhino.png","img/skins/clay/sealion.png","img/skins/clay/shark.png","img/skins/clay/sloth.png","img/skins/clay/squirrel.png","img/skins/clay/tiger.png","img/skins/clay/tortoise.png","img/skins/clay/wildboar.png","img/skins/clay/wolf.png","img/skins/clay/zebra.png","img/skins/origami/bison.png","img/skins/origami/camel.png","img/skins/origami/cheetah.png","img/skins/origami/chimpanzee.png","img/skins/origami/crocodile.png","img/skins/origami/dolphin.png","img/skins/origami/eagle.png","img/skins/origami/elephant.png","img/skins/origami/fox.png","img/skins/origami/frog.png","img/skins/origami/giraffe.png","img/skins/origami/gorilla.png","img/skins/origami/grizzly.png","img/skins/origami/hippo.png","img/skins/origami/honeybadger.png","img/skins/origami/horse.png","img/skins/origami/impala.png","img/skins/origami/jaguar.png","img/skins/origami/kangaroo.png","img/skins/origami/komodo.png","img/skins/origami/lion.png","img/skins/origami/moose.png","img/skins/origami/mountaingoat.png","img/skins/origami/ostrich.png","img/skins/origami/otter.png","img/skins/origami/panda.png","img/skins/origami/penguin.png","img/skins/origami/polarbear.png","img/skins/origami/puma.png","img/skins/origami/rabbit.png","img/skins/origami/rhino.png","img/skins/origami/sealion.png","img/skins/origami/shark.png","img/skins/origami/sloth.png","img/skins/origami/squirrel.png","img/skins/origami/tiger.png","img/skins/origami/tortoise.png","img/skins/origami/wildboar.png","img/skins/origami/wolf.png","img/skins/origami/zebra.png"];
-self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
-self.addEventListener("activate", e => { e.waitUntil(self.clients.claim()); });
+// Service worker: the game works offline, and a new release only downloads what changed.
+// - Code: network-first (always the latest version), kept in CODE_CACHE. Bump the version on every release.
+// - Pictures: shown straight from IMG_CACHE (fast, offline) and refreshed in the background, so a replaced
+//   picture appears on the next visit. IMG_CACHE keeps its name across releases, so pictures aren't re-downloaded.
+//   Only the base animals are fetched up front; skin pictures are saved the first time they're shown.
+// - Old caches (previous versions) are deleted when a new version takes over.
+const CODE_CACHE = "animal-draft-code-v12";
+const IMG_CACHE = "animal-draft-img";
+const CODE = ["./", "index.html", "style.css", "app.js", "ui.js", "game.js", "collection.js", "shop.js",
+  "engine.js", "save.js", "achievements.js", "skins.js", "manifest.webmanifest", "icon.svg"];
+const ANIMALS = ("bison camel cheetah chimpanzee crocodile dolphin eagle elephant fox frog giraffe gorilla grizzly hippo " +
+  "honeybadger horse impala jaguar kangaroo komodo lion moose mountaingoat ostrich otter panda penguin polarbear puma " +
+  "rabbit rhino sealion shark sloth squirrel tiger tortoise wildboar wolf zebra").split(" ").map(n => `img/animals/${n}.webp`);
+
+self.addEventListener("install", e => {
+  e.waitUntil((async () => {
+    await (await caches.open(CODE_CACHE)).addAll(CODE);
+    const img = await caches.open(IMG_CACHE);   // base pictures: only the ones not saved yet
+    await Promise.all(ANIMALS.map(async u => { if (!(await img.match(u))) await img.add(u).catch(() => {}); }));
+  })());
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", e => {
+  e.waitUntil((async () => {
+    for (const k of await caches.keys()) if (k !== CODE_CACHE && k !== IMG_CACHE) await caches.delete(k);
+    await self.clients.claim();
+  })());
+});
+
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
-  e.respondWith(
-    fetch(e.request).then(r => {
-      if (r.ok && new URL(e.request.url).origin === location.origin) {
-        const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy));
-      }
-      return r;
-    }).catch(() => caches.match(e.request))
-  );
+  const url = new URL(e.request.url);
+  if (url.origin !== location.origin) return;   // e.g. Google Fonts: let the browser handle it
+  if (url.pathname.includes("/img/")) e.respondWith(picture(e));
+  else e.respondWith(code(e.request));
 });
+
+async function code(req) {
+  try {
+    const r = await fetch(req);
+    if (r.ok) { const copy = r.clone(); caches.open(CODE_CACHE).then(c => c.put(req, copy)); }
+    return r;
+  } catch (err) {
+    return (await caches.match(req, { ignoreSearch: true })) || Response.error();
+  }
+}
+
+async function picture(e) {
+  const cache = await caches.open(IMG_CACHE);
+  const hit = await cache.match(e.request, { ignoreSearch: true });
+  const fresh = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; });
+  if (hit) { e.waitUntil(fresh.catch(() => {})); return hit; }
+  return fresh;
+}
