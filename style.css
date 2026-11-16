@@ -198,6 +198,13 @@ h2{margin:0;font-size:22px;font-weight:600}
 .pack-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .btn.small{font-size:14px;padding:10px 6px}
 .acard.owned{background:#eefbea}
+/* Trophy skin not earned yet: dimmed picture, progress tag */
+.acard.skin-locked .e,.skin-opt.skin-locked .e{opacity:.45}
+.acard.skin-locked .medals{color:var(--muted)}
+.skin-opt.skin-locked span:last-child{color:var(--muted)}
+.pack-btns.one{grid-template-columns:1fr}
+.small-note{font-size:13px}
+.lock-box{background:#f4f7fb;border-radius:14px;padding:10px 12px;font-size:14px}
 .skin-row{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}
 .skin-opt{font:inherit;font-size:12px;font-weight:600;color:var(--ink);background:#fff;border:3px solid transparent;border-radius:14px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;min-width:74px;box-shadow:0 2px 0 #d7e2ee}
 .skin-opt .e{width:56px;height:56px;display:grid;place-items:center}

@@ -9,8 +9,17 @@ export const SKIN_PACKS = [
   { id:"pixel", name:"Pixel",    icon:"👾", price:100, packPrice:3000, dir:"img/skins/pixel", pixel:true },
   { id:"clay",  name:"Clay",     icon:"🧱", price:100, packPrice:3000, dir:"img/skins/clay" },
   { id:"origami", name:"Origami", icon:"🦢", price:100, packPrice:3000, dir:"img/skins/origami" },
+  // Trophy skin: an animal can only buy it after winning `needSports` different sports (no whole-pack purchase)
+  { id:"gold",  name:"Gold",     icon:"🏆", price:250, packPrice:0,    dir:"img/skins/gold", needSports:5 },
 ];
 export const packById = id => SKIN_PACKS.find(p=>p.id===id) || SKIN_PACKS[0];
+
+// How many different sports an animal has won (from its album entry)
+export const sportsWon = entry => entry ? Object.values(entry.sports||{}).filter(s=>s.won>0).length : 0;
+// Can this animal buy a skin from this pack yet? Most packs: always. Gold: after enough different sports won.
+export const canBuy = (pack, entry) => !pack.needSports || sportsWon(entry) >= pack.needSports;
+// Progress text for a locked skin, e.g. "3 / 5 sports"
+export const lockText = (pack, entry) => `${Math.min(sportsWon(entry),pack.needSports)} / ${pack.needSports} sports`;
 
 // Picture file of an animal in a pack: <dir>/<name without spaces>.webp (a few names are shortened)
 const FILE = {"grizzlybear":"grizzly","komododragon":"komodo"};

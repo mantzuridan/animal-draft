@@ -28,12 +28,17 @@ export function loadAlbum(){ const v=read(ALBUM_KEY); return v && typeof v==="ob
 export const isUnlocked = (alb, id) => !!(alb[id] && alb[id].won>0);
 // Records a finished game from resolve()'s rows; returns what's new: unlocked animals and first wins in a sport
 export function recordAlbum(rows, gameWon){
-  const alb=loadAlbum(), news={unlocked:[], firstSport:[]};
+  // sportsWon: animals that reached a new number of different sports won ({animal, count})
+  const alb=loadAlbum(), news={unlocked:[], firstSport:[], sportsWon:[]};
   for(const r of rows){
     const a=r.you, e=alb[a.id] || (alb[a.id]={played:0, won:0, sports:{}});
     const sp=e.sports[r.sportIdx] || (e.sports[r.sportIdx]={played:0, won:0});
     e.played++; sp.played++;
-    if(r.winner==="you"){ if(sp.won===0) news.firstSport.push({animal:a, sport:r.sport}); sp.won++; }
+    if(r.winner==="you"){
+      if(sp.won===0){ news.firstSport.push({animal:a, sport:r.sport});
+        news.sportsWon.push({animal:a, count:Object.values(e.sports).filter(s=>s.won>0).length+1}); }
+      sp.won++;
+    }
     if(gameWon){ if(e.won===0) news.unlocked.push(a); e.won++; }
   }
   write(ALBUM_KEY, alb);

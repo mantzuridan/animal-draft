@@ -212,7 +212,9 @@ export async function startResults(){
   const list=$("resList"); list.innerHTML=""; $("banner").textContent=""; $("resBtns").style.visibility="hidden";
   let ys=0, bs=0; setScore(0,0);
   // In the final match the bot's animals wear random skins from every pack
-  const botSkin = () => Sk.SKIN_PACKS[Math.floor(Math.random()*Sk.SKIN_PACKS.length)].id;
+  // (not trophy skins like Gold, which have to be earned)
+  const BOT_PACKS=Sk.SKIN_PACKS.filter(p=>!p.needSports);
+  const botSkin = () => BOT_PACKS[Math.floor(Math.random()*BOT_PACKS.length)].id;
   for(const r of res.rows){
     const row=document.createElement("div"); row.className="res";
     const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${side==="bot"?pic(a,botSkin()):pic(a)}</span><span class="n">${a.name}</span></div>`;
@@ -233,6 +235,9 @@ export async function startResults(){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
     if(news.unlocked.length) lines.push(`📖 New in your album: <b>${news.unlocked.map(a=>ipic(a)+" "+a.name).join(", ")}</b>`);
     news.firstSport.forEach(({animal,sport})=>lines.push(`🏅 ${ipic(animal)} ${animal.name} won its first ${sport.name}!`));
+    // Trophy skins that just opened up (e.g. Gold after 5 different sports)
+    Sk.SKIN_PACKS.filter(p=>p.needSports).forEach(p=>news.sportsWon.filter(x=>x.count===p.needSports).forEach(({animal})=>
+      lines.push(`${p.icon} <b>${ipic(animal)} ${animal.name} unlocked the ${p.name} skin!</b> Get it in the shop`)));
     Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID));
     const factsAfter=Save.loadFacts();
     Ach.newlyDone(factsBefore, factsAfter).forEach(({ach,tier})=>

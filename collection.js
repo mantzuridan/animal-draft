@@ -48,8 +48,14 @@ export function showAlbumAnimal(a){
 export function renderAnimalSkins(a, box, onChange, onMore=()=>openShopAnimal(a)){
   const sk=Save.loadSkins(), cur=Save.equipped(sk,a.id);
   const owned=Sk.SKIN_PACKS.filter(p=>Save.owns(sk,p.id,a.id));
+  // Trophy skins (Gold) are always shown, with their progress, until the animal owns them
+  const entry=Save.loadAlbum()[a.id];
+  const trophies=Sk.SKIN_PACKS.filter(p=>p.needSports && !Save.owns(sk,p.id,a.id)).map(p=>{
+    const open=Sk.canBuy(p,entry);
+    return `<button type="button" class="skin-opt${open?"":" skin-locked"}" data-more="1"><span class="e">${pic(a,p.id)}</span><span>${open?`${p.name} · ${p.price}⭐`:"🔒 "+Sk.lockText(p,entry)}</span></button>`;
+  }).join("");
   box.innerHTML=`<div class="skin-row">`+owned.map(p=>
-    `<button type="button" class="skin-opt${p.id===cur?" on":""}" data-pack="${p.id}"><span class="e">${pic(a,p.id)}</span><span>${p.name}</span></button>`).join("")+
+    `<button type="button" class="skin-opt${p.id===cur?" on":""}" data-pack="${p.id}"><span class="e">${pic(a,p.id)}</span><span>${p.name}</span></button>`).join("")+trophies+
     `<button type="button" class="skin-opt more" data-more="1"><span class="e big">🛒</span><span>More</span></button></div>`;
   box.querySelectorAll(".skin-opt").forEach(b=>b.onclick=()=>{
     if(b.dataset.more){ onMore(); return; }

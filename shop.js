@@ -20,8 +20,9 @@ function renderShop(){
       const prev=["Lion","Elephant","Panda","Dolphin"].map(nm=>pic(E.ALL_ANIMALS.find(a=>a.name===nm),p.id)).join("");
       return `<div class="pack card"><div class="pack-top"><b>${p.icon} ${p.name}</b><span class="muted">${n} / ${total} owned</span></div>
         <div class="pack-prev">${prev}</div>
-        <div class="pack-btns"><button class="btn ghost small" data-browse="${p.id}">Browse · ${p.price} ⭐ each</button>
-        ${price ? `<button class="btn small" data-buypack="${p.id}">Whole pack · ${price.toLocaleString("en-US")} ⭐</button>` : `<button class="btn small" disabled>✓ Complete</button>`}</div></div>`;
+        ${p.needSports ? `<div class="muted small-note">Each animal unlocks it by winning ${p.needSports} different sports.</div>` : ""}
+        <div class="pack-btns${p.needSports?" one":""}"><button class="btn ghost small" data-browse="${p.id}">Browse · ${p.price} ⭐ each</button>
+        ${p.needSports ? "" : price ? `<button class="btn small" data-buypack="${p.id}">Whole pack · ${price.toLocaleString("en-US")} ⭐</button>` : `<button class="btn small" disabled>✓ Complete</button>`}</div></div>`;
     }).join("");
     box.querySelectorAll("[data-browse]").forEach(b=>b.onclick=()=>renderShopPack(b.dataset.browse));
     box.querySelectorAll("[data-buypack]").forEach(b=>b.onclick=()=>askBuyPack(Sk.packById(b.dataset.buypack)));
@@ -33,19 +34,27 @@ function renderShop(){
     box.querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>renderShopAnimal(E.ALL_ANIMALS[+d.dataset.id]));
   }
 }
+// A shop card's state for one skin: owned, locked (trophy skin not earned yet) or for sale
+function skinCard(sk, alb, a, p){
+  if(Save.owns(sk,p.id,a.id)) return {cls:" owned", tag:"✓"};
+  if(!Sk.canBuy(p, alb[a.id])) return {cls:" skin-locked", tag:`🔒 ${Sk.sportsWon(alb[a.id])}/${p.needSports}`};
+  return {cls:"", tag:p.price+"⭐"};
+}
 // One pack: every animal in that skin
 function renderShopPack(packId){
-  const p=Sk.packById(packId), sk=Save.loadSkins();
-  $("shopBody").innerHTML=`<button class="linkbtn" id="shopUp">‹ All packs</button><div class="hint">${p.icon} ${p.name} · ${p.price} ⭐ each</div><div class="album-grid">`+
-    E.ALL_ANIMALS.map(a=>`<div class="acard${Save.owns(sk,p.id,a.id)?" owned":""}" data-id="${a.id}"><div class="e">${pic(a,p.id)}</div><div class="n">${a.name}</div><div class="medals">${Save.owns(sk,p.id,a.id)?"✓":p.price+"⭐"}</div></div>`).join("")+`</div>`;
+  const p=Sk.packById(packId), sk=Save.loadSkins(), alb=Save.loadAlbum();
+  $("shopBody").innerHTML=`<button class="linkbtn" id="shopUp">‹ All packs</button><div class="hint">${p.icon} ${p.name} · ${p.price} ⭐ each${p.needSports?` · unlocks after ${p.needSports} different sports won`:""}</div><div class="album-grid">`+
+    E.ALL_ANIMALS.map(a=>{ const c=skinCard(sk,alb,a,p);
+      return `<div class="acard${c.cls}" data-id="${a.id}"><div class="e">${pic(a,p.id)}</div><div class="n">${a.name}</div><div class="medals">${c.tag}</div></div>`; }).join("")+`</div>`;
   $("shopUp").onclick=renderShop;
   $("shopBody").querySelectorAll("[data-id]").forEach(d=>d.onclick=()=>askBuySkin(E.ALL_ANIMALS[+d.dataset.id], p, ()=>renderShopPack(packId)));
 }
 // One animal: every skin it can wear
 function renderShopAnimal(a){
-  const sk=Save.loadSkins();
+  const sk=Save.loadSkins(), alb=Save.loadAlbum();
   $("shopBody").innerHTML=`<button class="linkbtn" id="shopUp">‹ All animals</button><div class="hint">${a.name}</div><div class="album-grid">`+
-    Sk.SKIN_PACKS.map(p=>`<div class="acard${Save.owns(sk,p.id,a.id)?" owned":""}" data-pack="${p.id}"><div class="e">${pic(a,p.id)}</div><div class="n">${p.name}</div><div class="medals">${Save.owns(sk,p.id,a.id)?"✓":p.price+"⭐"}</div></div>`).join("")+`</div>`;
+    Sk.SKIN_PACKS.map(p=>{ const c=skinCard(sk,alb,a,p);
+      return `<div class="acard${c.cls}" data-pack="${p.id}"><div class="e">${pic(a,p.id)}</div><div class="n">${p.name}</div><div class="medals">${c.tag}</div></div>`; }).join("")+`</div>`;
   $("shopUp").onclick=renderShop;
   $("shopBody").querySelectorAll("[data-pack]").forEach(d=>d.onclick=()=>askBuySkin(a, Sk.packById(d.dataset.pack), ()=>renderShopAnimal(a)));
 }
@@ -54,12 +63,15 @@ export function openShopAnimal(a, back="animal:"+a.id){ shopTab="animals"; openS
 // Preview a skin; buy it, or put it on if it's already owned
 function askBuySkin(a, p, refresh){
   const sk=Save.loadSkins(), have=Save.owns(sk,p.id,a.id), stars=Save.loadWallet().stars, on=Save.equipped(sk,a.id)===p.id;
+  const entry=Save.loadAlbum()[a.id], locked=!have && !Sk.canBuy(p, entry);
   openSheet(`<div class="sheet-pic">${pic(a,p.id)}</div><div class="aname">${a.name}</div><div class="muted">${p.icon} ${p.name} skin</div>`+
-    (have ? `<button class="btn green" id="sheetGo" ${on?"disabled":""}>${on?"✓ In use":"Use this skin"}</button>`
+    (locked ? `<div class="lock-box">🔒 Win <b>${p.needSports} different sports</b> with ${a.name} to unlock this skin.<div class="abar"><i style="width:${100*Math.min(Sk.sportsWon(entry),p.needSports)/p.needSports}%"></i></div><div class="anum">${Sk.lockText(p,entry)} won</div></div>`
+    : have ? `<button class="btn green" id="sheetGo" ${on?"disabled":""}>${on?"✓ In use":"Use this skin"}</button>`
           : `<button class="btn green" id="sheetGo" ${stars<p.price?"disabled":""}>Buy · ${p.price} ⭐</button>`+
             (stars<p.price ? `<div class="hint">You need ${p.price-stars} more ⭐</div>` : ""))+
     `<button class="btn ghost" id="sheetNo">Close</button>`);
   $("sheetNo").onclick=closeSheet;
+  if(locked) return;
   $("sheetGo").onclick=()=>{
     if(have){ Save.equip(a.id,p.id); toast(`${a.name} is now in ${p.name}!`); closeSheet(); refresh(); return; }
     if(!Save.buySkins(p.id,[a.id],p.price)) return;
