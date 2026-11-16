@@ -51,5 +51,6 @@ export async function openRoom(code, role, {onMessage, onFriendLeft, onFriendJoi
   }));
   return { send: msg => !closed && ch.send({type:"broadcast", event:"m", payload:msg}),
            close: () => { if(closed) return; closed=true; ch.untrack(); s.removeChannel(ch); },
+           debugAway: ms => { ch.untrack(); setTimeout(()=>!closed && ch.track({role:me}), ms); },   // tests: look disconnected for a while
            friendHere: () => here };
 }

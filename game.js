@@ -18,11 +18,14 @@ export const getGame = () => G;
 export const getAssign = () => A;
 onGoHome(()=>{ token++; G=null; ON=null; stopTimer(); });
 
-// Friend game: {seed, flip, friendSkins, send(msg)} from online.js; null vs the bot
+// Friend game: {seed, flip, friendSkins, friendName, friendId, send(msg)} from online.js; null vs the bot
 let ON=null;
 let friendQ=[], waitingFriend=false, friendPlan=null, myPlan=null;
-const OPP = () => ON ? "👤 Friend" : "🤖 Bot";
-const oppThe = () => ON ? "your friend" : "the bot";
+const FN = () => ON ? ON.friendName||"Friend" : "";
+const OPP = () => ON ? "👤 "+FN() : "🤖 Bot";
+const oppThe = () => ON ? FN() : "the bot";
+// Head-to-head score with this friend, from my side: "You 3 – 2 Dana"
+const h2h = () => { const f=Save.vsFriend(ON.friendId); return `You ${f.wins} – ${f.losses} ${FN()}`; };
 
 // online: start a game vs a friend instead of the bot
 export function newGame(online=null){
@@ -30,10 +33,10 @@ export function newGame(online=null){
   ON=online; friendQ=[]; waitingFriend=false; friendPlan=null; myPlan=null;
   G = ON ? E.createGame({level:"hard", rng:E.mulberry32(ON.seed), online:true, flip:ON.flip}) : E.createGame({level});
   $("oppLabel").textContent=OPP(); $("resOppLabel").textContent=OPP();
-  $("assignHint").textContent=`Tap an animal, then tap a sport. ${ON?"Your friend":"The bot"} is choosing in secret too.`;
+  $("assignHint").textContent=`Tap an animal, then tap a sport. ${ON?FN():"The bot"} is choosing in secret too.`;
   $("againBtn").textContent="Play again"; $("againBtn").disabled=false;
   renderGameSports();
-  $("draftLevel").textContent = ON ? "👥 vs friend" : level==="hard" ? "" : "🐣 Practice";
+  $("draftLevel").textContent = ON ? "👥 "+h2h() : level==="hard" ? "" : "🐣 Practice";
   $("draftLevel").hidden = !ON && level==="hard";
   show("draft");
   renderDraft();
@@ -74,7 +77,7 @@ async function step(){
   for(const ev of events){
     if(ev.type==="draftDone") return startAssign();
     if(ev.type==="fill"){
-      $("status").textContent = ev.side==="you" ? `${ON?"Your friend's":"Bot's"} team is full — you get random animals!` : `Your team is full — ${oppThe()} gets random animals.`;
+      $("status").textContent = ev.side==="you" ? `${ON?FN()+"'s":"Bot's"} team is full — you get random animals!` : `Your team is full — ${oppThe()} gets random animals.`;
       showAnimal(ev.animal); renderDraft();
       await sleep(900); if(!alive(t)) return;
       return step();
@@ -84,7 +87,7 @@ async function step(){
       if(ev.mode==="auction"){ await sleep(500); if(!alive(t)) return; return takeTurn(); }
       if(ev.mode==="rich"){
         if(G.cur.rich==="you"){
-          $("status").textContent=`${ON?"Your friend is":"Bot is"} out of coins. Buy it for 1, or it goes to ${oppThe()}.`;
+          $("status").textContent=`${ON?FN()+" is":"Bot is"} out of coins. Buy it for 1, or it goes to ${oppThe()}.`;
           setControls("rich");
           startTimer("timerBar","timer",E.RULES.bidSecs,()=>doAct("you", E.timeoutAction(G,"you")));
         } else {
@@ -133,7 +136,7 @@ function takeTurn(){
     });
   } else {
     setControls("none"); hideTimer("timer");
-    $("status").textContent = ON ? "👤 Your friend is thinking…" : "🤖 Bot is thinking…";
+    $("status").textContent = ON ? `👤 ${FN()} is thinking…` : "🤖 Bot is thinking…";
     if(ON) return waitFriend();
     const t=token;
     setTimeout(()=>{ if(alive(t) && G.cur && G.cur.turn==="bot") doAct("bot", E.botAction(G)); }, 900+Math.random()*700);
@@ -205,7 +208,7 @@ function finishAssign(){
   if(myPlan) return;
   hideTimer("atimer");
   myPlan=A.plan.slice(); ON.send({t:"plan", ids:myPlan.map(a=>a.id)});
-  $("confirmBtn").disabled=true; $("confirmBtn").textContent="Waiting for your friend…";
+  $("confirmBtn").disabled=true; $("confirmBtn").textContent=`Waiting for ${FN()}…`;
   tryResults();
 }
 function tryResults(){
@@ -242,7 +245,7 @@ export function renderAssign(){
   });
   if(!tray.children.length) tray.innerHTML=`<div class="hint" style="align-self:center">All set! Tap a sport to swap.</div>`;
   $("confirmBtn").disabled = !!myPlan || A.plan.some(x=>!x);
-  $("confirmBtn").textContent = myPlan ? "Waiting for your friend…" : "Start the games!";
+  $("confirmBtn").textContent = myPlan ? `Waiting for ${FN()}…` : "Start the games!";
 }
 $("confirmBtn").onclick=()=>{ if(!A.plan.some(x=>!x)){ hideTimer("atimer"); finishAssign(); } };
 
@@ -273,7 +276,9 @@ export async function startResults(){
   // Friend games count for stars and the album only (not the stats, streak or game achievements)
   const factsBefore = lvl==="hard" ? Save.loadFacts() : null;
   const s = lvl==="hard" && !ON ? Save.recordGame(lvl, res.won) : null;
-  $("banner").innerHTML = res.won ? "🏆 You win!" : ON ? "👤 Your friend wins" : "🤖 The bot wins";
+  $("banner").innerHTML = res.won ? "🏆 You win!" : ON ? `👤 ${FN()} wins` : "🤖 The bot wins";
+  if(ON){ Save.recordOnline(ON.friendId, FN(), res.won);
+    $("banner").innerHTML += `<div class="h2h">👥 ${h2h()}</div>`; }
   if(!s && !ON) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🐣 Practice game, not counted</div>`;
   if(res.won){ confetti(); if(s && s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   if(lvl==="hard"){

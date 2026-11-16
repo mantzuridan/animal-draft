@@ -96,6 +96,34 @@ export function equip(id, packId){ const sk=loadSkins(); if(!owns(sk,packId,id))
 // Puts a pack on every animal that owns a skin from it
 export function equipAll(packId, allIds){ const sk=loadSkins(); for(const id of allIds) if(owns(sk,packId,id)) sk.equip[id]=packId; write(SKINS_KEY,sk); }
 
+/* ---------- Profile: {id, name} - the name friends see; id tells friends apart for head-to-head scores ---------- */
+const PROFILE_KEY="animalDraft.profile";
+export const NAME_MAX=12;
+export const cleanName = s => (s||"").replace(/[<>&"'`]/g,"").replace(/\s+/g," ").trim().slice(0,NAME_MAX);
+export function loadProfile(){
+  const v=read(PROFILE_KEY)||{};
+  if(!v.id){ v.id=Math.random().toString(36).slice(2,10)+Date.now().toString(36); write(PROFILE_KEY,v); }
+  return {id:v.id, name:cleanName(v.name)};
+}
+export function setName(name){ const p=loadProfile(); p.name=cleanName(name); write(PROFILE_KEY,p); return p; }
+
+/* ---------- Online games vs friends: {games, wins, streak, best, friends:{[id]:{name, wins, losses}}} ---------- */
+const ONLINE_KEY="animalDraft.online";
+export function loadOnline(){
+  const v=read(ONLINE_KEY)||{};
+  return {games:v.games||0, wins:v.wins||0, streak:v.streak||0, best:v.best||0, friends:v.friends||{}};
+}
+// Head-to-head record with one friend (wins/losses from my side)
+export const vsFriend = id => loadOnline().friends[id] || {name:"", wins:0, losses:0};
+// Adds a finished friend game; returns the updated head-to-head record
+export function recordOnline(friendId, friendName, won){
+  const o=loadOnline();
+  o.games++; if(won){ o.wins++; o.streak++; o.best=Math.max(o.best,o.streak); } else o.streak=0;
+  const f=o.friends[friendId] || (o.friends[friendId]={name:"", wins:0, losses:0});
+  f.name=cleanName(friendName)||f.name; won ? f.wins++ : f.losses++; f.last=Date.now();
+  write(ONLINE_KEY,o); return f;
+}
+
 /* ---------- Reset ---------- */
-// Clears the whole account: stats, album, achievements, stars and skins
-export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ for(const k of [ALBUM_KEY,ACH_KEY,WALLET_KEY,SKINS_KEY]) localStorage.removeItem(k); }catch(e){} }
+// Clears the whole account: stats, album, achievements, stars, skins and friend records (keeps the username)
+export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ for(const k of [ALBUM_KEY,ACH_KEY,WALLET_KEY,SKINS_KEY,ONLINE_KEY]) localStorage.removeItem(k); }catch(e){} }

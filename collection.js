@@ -10,6 +10,13 @@ import { openShopAnimal } from "./shop.js";
 export function renderStats(){
   const s=Save.loadStats("hard");
   $("stGames").textContent=s.games; $("stWins").textContent=s.wins; $("stStreak").textContent=s.streak; $("stBest").textContent=s.best;
+  // Online vs friends: totals, then the head-to-head score with each friend (most recent first)
+  const o=Save.loadOnline();
+  $("onGames").textContent=o.games; $("onWins").textContent=o.wins; $("onStreak").textContent=o.streak; $("onBest").textContent=o.best;
+  const fr=Object.values(o.friends).sort((a,b)=>(b.last||0)-(a.last||0));
+  $("onFriends").innerHTML = fr.length
+    ? fr.map(f=>`<div class="h2h-row ${f.wins>f.losses?"ahead":f.wins<f.losses?"behind":""}"><span>👤 ${Save.cleanName(f.name)||"Friend"}</span><b>${f.wins} – ${f.losses}</b></div>`).join("")
+    : `<div class="hint">Play a friend to see your head-to-head scores here.</div>`;
 }
 
 /* ---------- Album ---------- */
