@@ -220,6 +220,9 @@ h2{margin:0;font-size:22px;font-weight:600}
 .sheet-card{background:var(--card,#fff);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:18px 16px 22px;display:grid;gap:10px;text-align:center;max-height:88vh;overflow:auto;animation:up .25s ease-out}
 @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 .sheet-pic{width:170px;height:170px;margin:0 auto}
+.room-code{font-size:44px;font-weight:800;letter-spacing:10px;text-align:center;color:var(--you);margin:4px 0}
+.join-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.join-row input{font:inherit;font-size:22px;font-weight:700;letter-spacing:6px;text-transform:uppercase;text-align:center;border:2px solid #d7e2ee;border-radius:14px;padding:8px;min-width:0}
 .mystery-box{font-size:120px;line-height:170px;text-align:center}
 .mystery-box.shake{animation:shake .9s ease-in-out}
 @keyframes shake{0%,100%{transform:rotate(0)}15%{transform:rotate(-14deg)}30%{transform:rotate(12deg)}45%{transform:rotate(-10deg)}60%{transform:rotate(8deg) scale(1.1)}80%{transform:scale(1.25)}}

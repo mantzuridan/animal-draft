@@ -27,6 +27,7 @@
       <div class="hint sport-hint" id="sportHint">5 random sports in every game · tap a sport to learn more</div>
     </div>
     <button class="btn green" id="playBtn">▶ Play</button>
+    <button class="btn ghost" id="friendBtn">👥 Play a friend</button>
     <div class="grid2">
       <button class="btn ghost small3" id="shopBtn">🛒 Shop</button>
       <button class="btn ghost small3" id="wardBtn">🎨 Skins</button>
@@ -47,7 +48,7 @@
     </div>
     <div class="sides">
       <div class="side you" id="sideYou"><div class="who"><span>You</span><span class="coins" id="coinsYou"></span></div><div class="team" id="teamYou"></div></div>
-      <div class="side bot" id="sideBot"><div class="who"><span>🤖 Bot</span><span class="coins" id="coinsBot"></span></div><div class="team" id="teamBot"></div></div>
+      <div class="side bot" id="sideBot"><div class="who"><span id="oppLabel">🤖 Bot</span><span class="coins" id="coinsBot"></span></div><div class="team" id="teamBot"></div></div>
     </div>
     <div class="card stage">
       <div class="counter" id="counter"></div>
@@ -82,7 +83,7 @@
   <!-- ASSIGN -->
   <section id="assign" class="screen">
     <div class="topbar"><div class="title">📋 Pick your athletes</div><button class="iconbtn" data-quit aria-label="Quit">✕</button></div>
-    <div class="hint">Tap an animal, then tap a sport. The bot is choosing in secret too.</div>
+    <div class="hint" id="assignHint">Tap an animal, then tap a sport. The bot is choosing in secret too.</div>
     <div class="timer" id="atimer"><i id="atimerBar"></i></div>
     <div class="sport-slots" id="sportSlots"></div>
     <div class="tray" id="tray"></div>
@@ -93,7 +94,7 @@
   <section id="results" class="screen">
     <div class="topbar"><div class="title">🏅 Results</div></div>
     <div class="score" id="scoreLine"><span class="y">0</span> – <span class="b">0</span></div>
-    <div class="res-labels"><span>You</span><span></span><span>🤖 Bot</span></div>
+    <div class="res-labels"><span>You</span><span></span><span id="resOppLabel">🤖 Bot</span></div>
     <div class="res-list" id="resList"></div>
     <div class="banner" id="banner"></div>
     <div class="row" id="resBtns" style="visibility:hidden">

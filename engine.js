@@ -128,14 +128,16 @@ export function autoAssign(view, team, min, preset){
 
 /* ---------- Game state ---------- */
 // level: the bot's level ("easy" | "hard"). rng: random source (seeded in tests and simulations).
-export function createGame({level="easy", rng=Math.random, sportIdx}={}){
+// online: a game vs a friend (no bot plan; the friend's plan arrives over the network).
+// flip: the same seeded game seen from the other phone - every coin flip lands on the other side.
+export function createGame({level="easy", rng=Math.random, sportIdx, online=false, flip=false}={}){
   const view = makeView(sportIdx || drawSports(rng));
   return {
-    level, rng, view,
+    level, rng, view, online, flip,
     pool: shuffleWith(view.animals.slice(), rng),
     you: {coins:RULES.budget, team:[]},
     bot: {coins:RULES.budget, team:[]},
-    nextOpener: rng()<.5 ? "you" : "bot",
+    nextOpener: (rng()<.5)!==flip ? "you" : "bot",
     shown: 0,
     cur: null,          // the animal being decided: {animal, mode:"auction"|"rich", bid, leader, turn, rich}
     phase: "draft",     // "draft" -> "assign" -> "done"
@@ -143,6 +145,8 @@ export function createGame({level="easy", rng=Math.random, sportIdx}={}){
     botPlan: null,
   };
 }
+// A fair coin between the two sides (mirrored on the friend's phone so both phones agree)
+const coin = st => (st.rng()<.5)!==st.flip ? "you" : "bot";
 const profileFor = (st, side, prof) => prof || LEVELS[side==="bot" ? st.level : "hard"];
 
 // Moves the draft forward by one step when nobody has a decision to make. Returns what happened.
@@ -150,7 +154,7 @@ const profileFor = (st, side, prof) => prof || LEVELS[side==="bot" ? st.level : 
 export function advance(st){
   if(st.phase!=="draft" || st.cur) return [];
   if(isFull(st,"you") && isFull(st,"bot")){
-    st.phase="assign"; st.botPlan=botAssign(st,"bot");
+    st.phase="assign"; st.botPlan = st.online ? null : botAssign(st,"bot");
     return [{type:"draftDone"}];
   }
   // One team is full -> the other gets random animals, one per step
@@ -173,7 +177,7 @@ export function advance(st){
   }
   // Nobody has coins: the team with fewer animals gets it for free
   const yl=st.you.team.length, bl=st.bot.team.length;
-  const side = yl<bl ? "you" : bl<yl ? "bot" : (st.rng()<.5 ? "you" : "bot");
+  const side = yl<bl ? "you" : bl<yl ? "bot" : coin(st);
   st.cur={animal:a, mode:"free"};
   return [{type:"reveal", animal:a, opener, mode:"free"}, ...award(st, side, 0)];
 }
@@ -245,7 +249,7 @@ export function resolve(st, youPlan){
   const rows=[]; let ys=0, bs=0;
   for(let i=0;i<n;i++){
     const ya=youPlan[i], ba=st.botPlan[i], yv=ya.s[i], bv=ba.s[i];
-    const winner = yv>bv ? "you" : bv>yv ? "bot" : (st.rng()<.5 ? "you" : "bot");
+    const winner = yv>bv ? "you" : bv>yv ? "bot" : coin(st);
     rows.push({sport:st.view.sports[i], sportIdx:st.view.sportIdx[i], you:ya, bot:ba, winner, close:yv===bv});
     winner==="you" ? ys++ : bs++;
   }

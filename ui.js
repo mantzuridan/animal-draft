@@ -40,7 +40,9 @@ export function renderStars(){ const s=Save.loadWallet().stars; document.querySe
 
 /* ---------- Bottom sheet (preview, buy, choose) ---------- */
 export function openSheet(html){ $("sheetCard").innerHTML=html; $("sheet").classList.add("on"); syncBack(); }
-export function closeSheet(){ $("sheet").classList.remove("on"); syncBack(); }
+const sheetHooks=[];
+export const onCloseSheet = f => sheetHooks.push(f);
+export function closeSheet(){ const was=$("sheet").classList.contains("on"); $("sheet").classList.remove("on"); syncBack(); if(was) sheetHooks.forEach(f=>f()); }
 $("sheet").onclick=e=>{ if(e.target.id==="sheet") closeSheet(); };
 
 /* ---------- Home ---------- */

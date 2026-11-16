@@ -4,9 +4,9 @@
 //   picture appears on the next visit. IMG_CACHE keeps its name across releases, so pictures aren't re-downloaded.
 //   Only the base animals are fetched up front; skin pictures are saved the first time they're shown.
 // - Old caches (previous versions) are deleted when a new version takes over.
-const CODE_CACHE = "animal-draft-code-v17";
+const CODE_CACHE = "animal-draft-code-v18";
 const IMG_CACHE = "animal-draft-img";
-const CODE = ["./", "index.html", "style.css", "app.js", "ui.js", "game.js", "collection.js", "shop.js",
+const CODE = ["./", "index.html", "style.css", "app.js", "ui.js", "game.js", "collection.js", "shop.js", "online.js", "net.js",
   "engine.js", "save.js", "achievements.js", "skins.js", "manifest.webmanifest", "icon.svg"];
 const ANIMALS = ("bison camel cheetah chimpanzee crocodile dolphin eagle elephant fox frog giraffe gorilla grizzly hippo " +
   "honeybadger horse impala jaguar kangaroo komodo lion moose mountaingoat ostrich otter panda penguin polarbear puma " +

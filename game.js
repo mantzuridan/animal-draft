@@ -16,14 +16,25 @@ const alive = t => G && t===token;
 export const setLevel = l => { level=l; };
 export const getGame = () => G;
 export const getAssign = () => A;
-onGoHome(()=>{ token++; G=null; stopTimer(); });
+onGoHome(()=>{ token++; G=null; ON=null; stopTimer(); });
 
-export function newGame(){
+// Friend game: {seed, flip, friendSkins, send(msg)} from online.js; null vs the bot
+let ON=null;
+let friendQ=[], waitingFriend=false, friendPlan=null, myPlan=null;
+const OPP = () => ON ? "👤 Friend" : "🤖 Bot";
+const oppThe = () => ON ? "your friend" : "the bot";
+
+// online: start a game vs a friend instead of the bot
+export function newGame(online=null){
   token++;
-  G=E.createGame({level});
+  ON=online; friendQ=[]; waitingFriend=false; friendPlan=null; myPlan=null;
+  G = ON ? E.createGame({level:"hard", rng:E.mulberry32(ON.seed), online:true, flip:ON.flip}) : E.createGame({level});
+  $("oppLabel").textContent=OPP(); $("resOppLabel").textContent=OPP();
+  $("assignHint").textContent=`Tap an animal, then tap a sport. ${ON?"Your friend":"The bot"} is choosing in secret too.`;
+  $("againBtn").textContent="Play again"; $("againBtn").disabled=false;
   renderGameSports();
-  $("draftLevel").textContent = level==="hard" ? "" : "🐣 Practice";
-  $("draftLevel").hidden = level==="hard";
+  $("draftLevel").textContent = ON ? "👥 vs friend" : level==="hard" ? "" : "🐣 Practice";
+  $("draftLevel").hidden = !ON && level==="hard";
   show("draft");
   renderDraft();
   step();
@@ -45,7 +56,7 @@ function renderDraft(){
   $("sideYou").classList.toggle("active", !!c && c.turn==="you");
   $("sideBot").classList.toggle("active", !!c && c.turn==="bot");
   $("bidLine").innerHTML = c && c.mode==="auction"
-    ? (c.bid>0 ? `${c.leader==="you"?"You":"🤖 Bot"} bid <b>${c.bid} 🪙</b>` : `<span class="muted">${c.turn==="you"?"You open":"Bot opens"} the bidding</span>`)
+    ? (c.bid>0 ? `${c.leader==="you"?"You":OPP()} bid <b>${c.bid} 🪙</b>` : `<span class="muted">${c.turn==="you"?"You open":OPP()+" opens"} the bidding</span>`)
     : "";
 }
 
@@ -63,7 +74,7 @@ async function step(){
   for(const ev of events){
     if(ev.type==="draftDone") return startAssign();
     if(ev.type==="fill"){
-      $("status").textContent = ev.side==="you" ? "Bot's team is full — you get random animals!" : "Your team is full — the bot gets random animals.";
+      $("status").textContent = ev.side==="you" ? `${ON?"Your friend's":"Bot's"} team is full — you get random animals!` : `Your team is full — ${oppThe()} gets random animals.`;
       showAnimal(ev.animal); renderDraft();
       await sleep(900); if(!alive(t)) return;
       return step();
@@ -73,11 +84,12 @@ async function step(){
       if(ev.mode==="auction"){ await sleep(500); if(!alive(t)) return; return takeTurn(); }
       if(ev.mode==="rich"){
         if(G.cur.rich==="you"){
-          $("status").textContent="Bot is out of coins. Buy it for 1, or it goes to the bot.";
+          $("status").textContent=`${ON?"Your friend is":"Bot is"} out of coins. Buy it for 1, or it goes to ${oppThe()}.`;
           setControls("rich");
           startTimer("timerBar","timer",E.RULES.bidSecs,()=>doAct("you", E.timeoutAction(G,"you")));
         } else {
-          $("status").textContent="You're out of coins — the bot decides…";
+          $("status").textContent=`You're out of coins — ${oppThe()} decides…`;
+          if(ON) return waitFriend();
           await sleep(1300); if(!alive(t)) return;
           doAct("bot", E.botAction(G));
         }
@@ -121,7 +133,8 @@ function takeTurn(){
     });
   } else {
     setControls("none"); hideTimer("timer");
-    $("status").textContent="🤖 Bot is thinking…";
+    $("status").textContent = ON ? "👤 Your friend is thinking…" : "🤖 Bot is thinking…";
+    if(ON) return waitFriend();
     const t=token;
     setTimeout(()=>{ if(alive(t) && G.cur && G.cur.turn==="bot") doAct("bot", E.botAction(G)); }, 900+Math.random()*700);
   }
@@ -131,17 +144,30 @@ function takeTurn(){
 async function doAct(side, action){
   const t=token;
   const events=E.act(G, side, action);
-  if(!events) return; // not allowed (e.g. a double tap)
+  if(!events){ if(ON && side==="bot") toast("⚠️ Out of sync with your friend's phone"); return; } // not allowed (e.g. a double tap)
+  if(ON && side==="you") ON.send({t:"act", action});
   stopTimer();
   const ev=events[0];
   if(ev.type==="bid") return takeTurn();
   if(ev.type==="award"){ await showAward(ev); if(!alive(t)) return; step(); }
 }
 
+/* ---------- Friend game: the friend's moves arrive from online.js ---------- */
+// Moves are queued and applied only when this phone is waiting for the friend
+// (the two phones animate at slightly different speeds).
+export function friendMessage(m){
+  if(!ON) return;
+  if(m.t==="act"){ friendQ.push(m.action); pumpFriend(); }
+  else if(m.t==="plan"){ friendPlan=m.ids; tryResults(); }
+}
+function waitFriend(){ waitingFriend=true; pumpFriend(); }
+function pumpFriend(){ if(!waitingFriend || !G || !friendQ.length) return; waitingFriend=false; doAct("bot", friendQ.shift()); }
+export const inFriendGame = () => !!ON;
+
 async function showAward(ev){
   setControls("none"); hideTimer("timer");
   renderDraft();
-  const who = ev.side==="you" ? "You got" : "🤖 Bot got";
+  const who = ev.side==="you" ? "You got" : OPP()+" got";
   const cost = ev.price>0 ? ` for ${ev.price} 🪙` : " for free";
   $("status").textContent = `${who} the ${ev.animal.name}${cost}!`;
   await sleep(1500);
@@ -170,8 +196,23 @@ function startAssign(){
     if(!alive(t)) return;
     A.plan=E.autoAssignPlayer(G, A.plan);
     renderAssign(); toast("⏰ Time's up — auto-assigned!");
-    setTimeout(()=>{ if(alive(t)) startResults(); }, 1200);
+    setTimeout(()=>{ if(alive(t)) finishAssign(); }, 1200);
   });
+}
+// Assignment done: vs the bot go straight to the results; vs a friend send the plan and wait for theirs
+function finishAssign(){
+  if(!ON) return startResults();
+  if(myPlan) return;
+  hideTimer("atimer");
+  myPlan=A.plan.slice(); ON.send({t:"plan", ids:myPlan.map(a=>a.id)});
+  $("confirmBtn").disabled=true; $("confirmBtn").textContent="Waiting for your friend…";
+  tryResults();
+}
+function tryResults(){
+  if(!G || !myPlan || !friendPlan || G.phase!=="assign") return;
+  G.botPlan=friendPlan.map(id=>G.bot.team.find(a=>a.id===id));
+  if(G.botPlan.some(a=>!a)){ toast("⚠️ Out of sync with your friend's phone"); return; }
+  A.plan=myPlan; startResults();
 }
 export function renderAssign(){
   const slots=$("sportSlots"); slots.innerHTML="";
@@ -181,6 +222,7 @@ export function renderAssign(){
     d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
       (a ? `<div class="who"><span class="e">${pic(a)}</span><span>${a.name}</span></div>` : `<div class="empty">empty</div>`);
     d.onclick=()=>{
+      if(myPlan) return;   // plan already sent to the friend
       if(A.selected){
         const prev=A.plan[i], from=A.plan.indexOf(A.selected);
         if(from>=0) A.plan[from]=prev; // swap if moving a placed animal
@@ -199,9 +241,10 @@ export function renderAssign(){
     tray.appendChild(c);
   });
   if(!tray.children.length) tray.innerHTML=`<div class="hint" style="align-self:center">All set! Tap a sport to swap.</div>`;
-  $("confirmBtn").disabled = A.plan.some(x=>!x);
+  $("confirmBtn").disabled = !!myPlan || A.plan.some(x=>!x);
+  $("confirmBtn").textContent = myPlan ? "Waiting for your friend…" : "Start the games!";
 }
-$("confirmBtn").onclick=()=>{ if(!A.plan.some(x=>!x)){ hideTimer("atimer"); startResults(); } };
+$("confirmBtn").onclick=()=>{ if(!A.plan.some(x=>!x)){ hideTimer("atimer"); finishAssign(); } };
 
 /* ---------- Results ---------- */
 export async function startResults(){
@@ -214,10 +257,11 @@ export async function startResults(){
   // In the final match the bot's animals wear random skins from every pack
   // (not trophy skins like Gold, which have to be earned)
   const BOT_PACKS=Sk.SKIN_PACKS.filter(p=>!p.needSports);
-  const botSkin = () => BOT_PACKS[Math.floor(Math.random()*BOT_PACKS.length)].id;
+  // A friend's animals wear the skins that friend chose
+  const botSkin = a => ON ? ((ON.friendSkins||{})[a.id]||"base") : BOT_PACKS[Math.floor(Math.random()*BOT_PACKS.length)].id;
   for(const r of res.rows){
     const row=document.createElement("div"); row.className="res";
-    const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${side==="bot"?pic(a,botSkin()):pic(a)}</span><span class="n">${a.name}</span></div>`;
+    const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${side==="bot"?pic(a,botSkin(a)):pic(a)}</span><span class="n">${a.name}</span></div>`;
     row.innerHTML = cell(r.you,"you") + `<div class="mid"><b>${r.sport.icon}</b>${r.sport.name}${r.close?'<br><span class="close">Close match!</span>':""}</div>` + cell(r.bot,"bot");
     list.appendChild(row);
     await sleep(80); if(!alive(t)) return;
@@ -226,10 +270,11 @@ export async function startResults(){
     r.winner==="you" ? ys++ : bs++;
     setScore(ys,bs);
   }
+  // Friend games count for stars and the album only (not the stats, streak or game achievements)
   const factsBefore = lvl==="hard" ? Save.loadFacts() : null;
-  const s = lvl==="hard" ? Save.recordGame(lvl, res.won) : null;
-  $("banner").innerHTML = res.won ? "🏆 You win!" : "🤖 The bot wins";
-  if(!s) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🐣 Practice game, not counted</div>`;
+  const s = lvl==="hard" && !ON ? Save.recordGame(lvl, res.won) : null;
+  $("banner").innerHTML = res.won ? "🏆 You win!" : ON ? "👤 Your friend wins" : "🤖 The bot wins";
+  if(!s && !ON) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🐣 Practice game, not counted</div>`;
   if(res.won){ confetti(); if(s && s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   if(lvl==="hard"){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
@@ -238,7 +283,7 @@ export async function startResults(){
     // Trophy skins that just opened up (e.g. Gold after 5 different sports)
     Sk.SKIN_PACKS.filter(p=>p.needSports).forEach(p=>news.sportsWon.filter(x=>x.count===p.needSports).forEach(({animal})=>
       lines.push(`${p.icon} <b>${ipic(animal)} ${animal.name} unlocked the ${p.name} skin!</b> Get it in the shop`)));
-    Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID));
+    if(!ON) Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID));
     const factsAfter=Save.loadFacts();
     Ach.newlyDone(factsBefore, factsAfter).forEach(({ach,tier})=>
       lines.push(`${Ach.TIER_ICONS[tier]} <b>${ach.name}</b>: ${ach.tiers[tier].text} <span class="starsTag">+${Sk.MEDAL_STARS[tier]} ⭐</span>`));

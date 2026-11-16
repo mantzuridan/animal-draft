@@ -8,6 +8,7 @@ import { $, picSrc, show, shortName, renderStars, goHome } from "./ui.js";
 import * as Game from "./game.js";
 import { renderStats } from "./collection.js";
 import "./shop.js";
+import * as Online from "./online.js";
 
 /* ---------- Sport descriptions on Home (tap a sport icon) ---------- */
 const SPORT_HINT_DEFAULT=$("sportHint").textContent;
@@ -24,7 +25,7 @@ $("homeSports").querySelectorAll("button").forEach(b=>b.onclick=()=>{
 /* ---------- Navigation ---------- */
 $("playBtn").onclick=()=>{ Game.setLevel("hard"); Game.newGame(); };
 $("practiceBtn").onclick=()=>{ Game.setLevel("easy"); Game.newGame(); };
-$("againBtn").onclick=Game.newGame;   // same mode as the game just played
+$("againBtn").onclick=()=> Game.inFriendGame() ? Online.playAgain() : Game.newGame();   // same mode as the game just played
 $("homeBtn").onclick=goHome;
 $("statsBtn").onclick=()=>{ renderStats(); show("stats"); };
 $("rulesBtn").onclick=()=>show("rules");
