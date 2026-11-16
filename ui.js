@@ -16,7 +16,7 @@ export const shortName = s => s.name.replace("100m ","");
 
 let toastT;
 export function toast(msg, ms=1500){ const t=$("toast"); t.innerHTML=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),ms); }
-export function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id)); window.scrollTo(0,0); }
+export function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===id)); window.scrollTo(0,0); syncBack(); }
 
 /* ---------- Timer (one at a time) ---------- */
 let timerId=null;
@@ -39,8 +39,8 @@ export function hideTimer(wrapId){ stopTimer(); $(wrapId).style.visibility="hidd
 export function renderStars(){ const s=Save.loadWallet().stars; document.querySelectorAll(".starsVal").forEach(e=>e.textContent=s.toLocaleString("en-US")); }
 
 /* ---------- Bottom sheet (preview, buy, choose) ---------- */
-export function openSheet(html){ $("sheetCard").innerHTML=html; $("sheet").classList.add("on"); }
-export function closeSheet(){ $("sheet").classList.remove("on"); }
+export function openSheet(html){ $("sheetCard").innerHTML=html; $("sheet").classList.add("on"); syncBack(); }
+export function closeSheet(){ $("sheet").classList.remove("on"); syncBack(); }
 $("sheet").onclick=e=>{ if(e.target.id==="sheet") closeSheet(); };
 
 /* ---------- Home ---------- */
@@ -48,3 +48,31 @@ $("sheet").onclick=e=>{ if(e.target.id==="sheet") closeSheet(); };
 const homeHooks=[];
 export const onGoHome = f => homeHooks.push(f);
 export function goHome(){ homeHooks.forEach(f=>f()); closeSheet(); renderStars(); show("home"); }
+
+/* ---------- Phone back button ---------- */
+// While anything other than the plain home screen is showing, one extra browser-history entry is kept.
+// The phone's back button pops it and we do one step back inside the app instead of leaving the site.
+let backArmed=false, ignorePop=false, backQueued=false;
+const curScreen = () => (document.querySelector(".screen.on")||{}).id;
+const sheetOpen = () => $("sheet").classList.contains("on");
+// Runs after the current click/handler is done, so close-then-open in one go doesn't touch history twice
+function syncBack(){
+  if(backQueued) return; backQueued=true;
+  setTimeout(()=>{ backQueued=false;
+    const need = sheetOpen() || curScreen()!=="home";
+    if(need && !backArmed){ history.pushState({ad:1},""); backArmed=true; }
+    else if(!need && backArmed){ backArmed=false; ignorePop=true; history.back(); }
+  },0);
+}
+// One step back: close the sheet, else the screen's own back (✕, "‹ All packs", quit-game question)
+function stepBack(){
+  if(sheetOpen()){ closeSheet(); return; }
+  const s=curScreen();
+  if(s==="shop" && $("shopUp")){ $("shopUp").click(); return; }
+  if(s==="results"){ if($("resBtns").style.visibility!=="hidden") $("homeBtn").click(); return; }
+  const b=document.querySelector(`#${s} .topbar .iconbtn`); if(b) b.click();
+}
+window.addEventListener("popstate",()=>{
+  if(ignorePop){ ignorePop=false; return; }
+  backArmed=false; stepBack(); syncBack();
+});
