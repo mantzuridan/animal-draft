@@ -273,7 +273,7 @@ export async function startResults(){
     r.winner==="you" ? ys++ : bs++;
     setScore(ys,bs);
   }
-  // Friend games count for stars and the album only (not the stats, streak or game achievements)
+  // Friend games count for stars, the album and the Social / Rival achievements only (not the bot stats or other achievements)
   const factsBefore = lvl==="hard" ? Save.loadFacts() : null;
   const s = lvl==="hard" && !ON ? Save.recordGame(lvl, res.won) : null;
   $("banner").innerHTML = res.won ? "🏆 You win!" : ON ? `👤 ${FN()} wins` : "🤖 The bot wins";
@@ -288,7 +288,7 @@ export async function startResults(){
     // Trophy skins that just opened up (e.g. Gold after 5 different sports)
     Sk.SKIN_PACKS.filter(p=>p.needSports).forEach(p=>news.sportsWon.filter(x=>x.count===p.needSports).forEach(({animal})=>
       lines.push(`${p.icon} <b>${ipic(animal)} ${animal.name} unlocked the ${p.name} skin!</b> Get it in the shop`)));
-    if(!ON) Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID));
+    ON ? Save.recordFriendSports(res.rows) : Save.recordCounters(Ach.gameCounters(res, G.you.team, G.you.coins, TORTOISE_ID, G.you.maxPaid));
     const factsAfter=Save.loadFacts();
     Ach.newlyDone(factsBefore, factsAfter).forEach(({ach,tier})=>
       lines.push(`${Ach.TIER_ICONS[tier]} <b>${ach.name}</b>: ${ach.tiers[tier].text} <span class="starsTag">+${Sk.MEDAL_STARS[tier]} ⭐</span>`));

@@ -2,10 +2,21 @@
 import * as E from "./engine.js";
 import * as Save from "./save.js";
 import * as Sk from "./skins.js";
+import * as Ach from "./achievements.js";
 import { $, pic, toast, show, renderStars, openSheet, closeSheet, goHome } from "./ui.js";
 import { showAlbumAnimal, renderAnimalSkins } from "./collection.js";
 
 const ALL_IDS = () => E.ALL_ANIMALS.map(a=>a.id);
+// Buys skins, then pays and announces any medal that buying them earned (Fashionista)
+function buy(packId, ids, price){
+  const before=Save.loadFacts();
+  if(!Save.buySkins(packId, ids, price)) return false;
+  const after=Save.loadFacts(), got=Ach.newlyDone(before, after);
+  Save.syncMedalStars(Sk.medalStarsTotal(after)); renderStars();
+  if(got.length) setTimeout(()=>toast(got.map(({ach,tier})=>
+    `${Ach.TIER_ICONS[tier]} <b>${ach.name}</b>: ${ach.tiers[tier].text} +${Sk.MEDAL_STARS[tier]} ⭐`).join("<br>"), 3500), 1800);
+  return true;
+}
 const SELL = () => Sk.SKIN_PACKS.filter(p=>p.price>0);
 // Mystery skin: a random skin from 100+ star skins the player doesn't own (Gold only where that animal unlocked it), each equally likely
 const MYSTERY_PRICE=80, MYSTERY_MIN=100;
@@ -83,7 +94,7 @@ function askBuySkin(a, p, refresh){
   if(locked) return;
   $("sheetGo").onclick=()=>{
     if(have){ Save.equip(a.id,p.id); toast(`${a.name} is now in ${p.name}!`); closeSheet(); refresh(); return; }
-    if(!Save.buySkins(p.id,[a.id],p.price)) return;
+    if(!buy(p.id,[a.id],p.price)) return;
     renderStars(); refresh(); askBuySkin(a,p,refresh); toast(`🎉 ${p.name} ${a.name} is yours!`);
   };
 }
@@ -98,7 +109,7 @@ function askBuyPack(p){
   $("sheetNo").onclick=closeSheet;
   $("sheetGo").onclick=()=>{
     const missing=E.ALL_ANIMALS.filter(a=>!Save.owns(sk,p.id,a.id)).map(a=>a.id);
-    if(!Save.buySkins(p.id,missing,price)) return;
+    if(!buy(p.id,missing,price)) return;
     renderStars(); renderShop();
     openSheet(`<div class="aname">🎉 ${p.name} pack is yours!</div><div class="muted">Put it on every animal now? You can still change single animals later.</div>`+
       `<button class="btn green" id="sheetGo">Apply to all animals</button><button class="btn ghost" id="sheetNo">Not now</button>`);
@@ -151,7 +162,7 @@ function askMystery(){
   $("sheetGo").onclick=()=>{
     const pool=mysteryPool(); if(!pool.length) return;
     const {p,a}=pool[Math.floor(Math.random()*pool.length)];
-    if(!Save.buySkins(p.id,[a.id],MYSTERY_PRICE)) return;
+    if(!buy(p.id,[a.id],MYSTERY_PRICE)) return;
     renderStars(); renderShop();
     $("sheetCard").querySelector(".mystery-box").classList.add("shake");
     $("sheetGo").disabled=true;

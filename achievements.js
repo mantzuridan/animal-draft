@@ -33,6 +33,19 @@ export const ACHIEVEMENTS = [
     tiers: count(f=>f.bestAllRound, [2,4,6,8], n=>`One animal wins in ${n} different sports`) },
   { id:"close", icon:"🪙", name:"Lucky Coin",
     tiers: count(f=>f.closeWins, [1,10,25,50], n=>n===1 ? "Win a close match (a tie decided by a coin flip)" : `Win ${n} close matches`) },
+  { id:"bigspend", icon:"💸", name:"Big Spender",
+    tiers: count(f=>f.bigSpends, [1,5,15,40], n=>`Win a game where you paid 10+ coins for one animal${n===1?"":`, ${n} times`}`) },
+  { id:"veteran", icon:"🎮", name:"Veteran",
+    tiers: count(f=>f.games, [25,100,250,500], n=>`Play ${n} games`) },
+  { id:"fashion", icon:"🎨", name:"Fashionista",
+    tiers: count(f=>f.skinsOwned, [5,15,40,80], n=>`Own ${n} skins`) },
+  { id:"everysport", icon:"🏟️", name:"Every Sport",
+    tiers: count(f=>f.everySport, [1,5,15,30], n=>n===1 ? "Win in each of the 8 sports" : `Win each of the 8 sports ${n} times`) },
+  // Friend games only
+  { id:"social", icon:"👥", name:"Social",
+    tiers: count(f=>f.onlineGames, [1,10,30,75], n=>n===1 ? "Play a game against a friend" : `Play ${n} games against friends`) },
+  { id:"rival", icon:"🤝", name:"Rival",
+    tiers: count(f=>f.onlineWins, [1,10,25,60], n=>n===1 ? "Beat a friend" : `Beat friends ${n} times`) },
 ];
 
 // How many tiers of an achievement are done (0-4), walking them in order
@@ -49,8 +62,8 @@ export function newlyDone(before, after){
   return out;
 }
 
-// The counters one finished (counted) game adds. res = resolve() result, team = your 5 animals, coinsLeft = your coins
-export function gameCounters(res, team, coinsLeft, tortoiseId){
+// The counters one finished (counted) game adds. res = resolve() result, team = your 5 animals, coinsLeft = your coins, maxPaid = most you paid for one animal
+export function gameCounters(res, team, coinsLeft, tortoiseId, maxPaid=0){
   const won=res.won, hasTortoise=team.some(a=>a.id===tortoiseId);
   return {
     sweeps: won && res.ys===5 ? 1 : 0,
@@ -60,5 +73,6 @@ export function gameCounters(res, team, coinsLeft, tortoiseId){
     zeroLeftWins: won && coinsLeft===0 ? 1 : 0,
     closeWins: res.rows.filter(r=>r.close && r.winner==="you").length,
     maxLeftWin: won ? coinsLeft : 0,   // kept as a maximum, not a sum
+    bigSpends: won && maxPaid>=10 ? 1 : 0,
   };
 }

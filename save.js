@@ -55,13 +55,25 @@ export function recordCounters(add){
   for(const [k,v] of Object.entries(add)) c[k] = k==="maxLeftWin" ? Math.max(c[k]||0, v) : (c[k]||0)+v;
   write(ACH_KEY, c);
 }
-// Everything the achievements look at. Wins, streak and album come from the stats and album already saved.
+// Friend games don't count for achievements (only Social and Rival), but they do fill the album:
+// their sport wins are kept apart (friendSport0..7) so Every Sport can leave them out.
+export function recordFriendSports(rows){
+  const add={}; for(const r of rows) if(r.winner==="you") add["friendSport"+r.sportIdx]=(add["friendSport"+r.sportIdx]||0)+1;
+  recordCounters(add);
+}
+// Everything the achievements look at: games against the bot (Hard). Friend games only count for Social and Rival.
+// Wins, games, streak and album come from the stats, online record and album already saved.
 export function loadFacts(){
-  const c=loadCounters(), s=loadStats("hard"), alb=loadAlbum();
+  const c=loadCounters(), s=loadStats("hard"), o=loadOnline(), alb=loadAlbum(), sk=loadSkins();
   const animals=Object.values(alb);
   const num=k=>c[k]||0;
+  // Wins in each of the 8 sports over every animal, without friend games
+  const sportWins=[0,1,2,3,4,5,6,7].map(i=>animals.reduce((t,e)=>t+((e.sports||{})[i]?.won||0),0)-num("friendSport"+i));
   return {
-    wins:s.wins, bestStreak:s.best,
+    wins:s.wins, games:s.games, bestStreak:s.best,
+    onlineGames:o.games, onlineWins:o.wins,
+    skinsOwned:Object.values(sk.owned).reduce((t,l)=>t+l.length,0),
+    everySport:Math.min(...sportWins), bigSpends:num("bigSpends"),
     albumUnlocked: animals.filter(e=>e.won>0).length,
     bestAllRound: Math.max(0, ...animals.map(e=>Object.values(e.sports||{}).filter(sp=>sp.won>0).length)),
     sweeps:num("sweeps"), tortoiseDrafted:num("tortoiseDrafted"), tortoiseWins:num("tortoiseWins"),

@@ -135,8 +135,8 @@ export function createGame({level="easy", rng=Math.random, sportIdx, online=fals
   return {
     level, rng, view, online, flip,
     pool: shuffleWith(view.animals.slice(), rng),
-    you: {coins:RULES.budget, team:[]},
-    bot: {coins:RULES.budget, team:[]},
+    you: {coins:RULES.budget, team:[], maxPaid:0},
+    bot: {coins:RULES.budget, team:[], maxPaid:0},
     nextOpener: (rng()<.5)!==flip ? "you" : "bot",
     shown: 0,
     cur: null,          // the animal being decided: {animal, mode:"auction"|"rich", bid, leader, turn, rich}
@@ -182,7 +182,7 @@ export function advance(st){
   return [{type:"reveal", animal:a, opener, mode:"free"}, ...award(st, side, 0)];
 }
 function award(st, side, price){
-  const a=st.cur.animal; st[side].coins-=price; st[side].team.push(a); st.cur=null;
+  const a=st.cur.animal; st[side].coins-=price; st[side].maxPaid=Math.max(st[side].maxPaid,price); st[side].team.push(a); st.cur=null;
   return [{type:"award", side, animal:a, price}];
 }
 
