@@ -10,6 +10,7 @@ export const SKIN_PACKS = [
   { id:"clay",  name:"Clay",     icon:"🧱", price:100, packPrice:3000, dir:"img/skins/clay" },
   { id:"origami", name:"Origami", icon:"🦢", price:100, packPrice:3000, dir:"img/skins/origami" },
   { id:"business", name:"Business", icon:"💼", price:100, packPrice:3000, dir:"img/skins/business" },
+  { id:"pirate", name:"Pirates", icon:"🏴‍☠️", price:100, packPrice:3000, dir:"img/skins/pirate" },
   // Trophy skin: an animal can only buy it after winning `needSports` different sports (no whole-pack purchase)
   { id:"gold",  name:"Gold",     icon:"🏆", price:250, packPrice:0,    dir:"img/skins/gold", needSports:5 },
 ];
