@@ -11,6 +11,7 @@ create table if not exists public.saves (
 alter table public.saves enable row level security;
 drop policy if exists "read own save" on public.saves;
 create policy "read own save" on public.saves for select to authenticated using (auth.uid() = user_id);
+grant select on table public.saves to authenticated;   -- the read policy above needs this table permission too
 -- No insert/update/delete policies: writes only go through the functions below.
 
 create table if not exists public.transfers (
