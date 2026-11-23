@@ -1,0 +1,19 @@
+{
+  "name": "animal-draft",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Animal Draft as a phone app (Capacitor). The game itself is the plain web files in this folder.",
+  "scripts": {
+    "www": "node scripts/build-www.mjs",
+    "sync": "node scripts/build-www.mjs && npx cap sync",
+    "android": "node scripts/build-www.mjs && npx cap sync android && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/ios": "^7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.10"
+  }
+}

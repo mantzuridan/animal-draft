@@ -1,6 +1,6 @@
 // Friend games: a room between two phones, identified by a 4-letter code.
 // Both phones run the same seeded game (engine.js) and only send each other their moves.
-// Transport: Supabase Realtime (broadcast + presence; nothing is stored). Until a project is set up,
+// Transport: Supabase Realtime (broadcast + presence; nothing is stored). client() is shared with cloud.js. Until a project is set up,
 // or with ?local in the address, two tabs of the same browser talk through a BroadcastChannel (for testing).
 
 const SUPABASE_URL = "https://hxnhkcbhpczmqlogerar.supabase.co";   // project "animal-draft"
@@ -10,10 +10,10 @@ const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/+
 const LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // no I / O (look like 1 / 0)
 export const newCode = () => Array.from({length:4}, ()=>LETTERS[Math.floor(Math.random()*LETTERS.length)]).join("");
 export const cleanCode = s => (s||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
-const useLocal = () => !SUPABASE_URL || new URLSearchParams(location.search).has("local");
+export const useLocal = () => !SUPABASE_URL || new URLSearchParams(location.search).has("local");
 
 let sb=null;
-async function client(){
+export async function client(){
   if(!sb){ const { createClient } = await import(SUPABASE_JS); sb=createClient(SUPABASE_URL, SUPABASE_KEY); }
   return sb;
 }

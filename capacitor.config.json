@@ -1,0 +1,7 @@
+{
+  "appId": "io.github.mantzuridan.animaldraft",
+  "appName": "Animal Draft",
+  "webDir": "www",
+  "backgroundColor": "#c9f0ff",
+  "android": { "allowMixedContent": false }
+}

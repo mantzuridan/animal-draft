@@ -258,3 +258,6 @@ h2{margin:0;font-size:22px;font-weight:600}
 
 .confetti{position:fixed;top:-20px;font-size:26px;pointer-events:none;animation:fall linear forwards;z-index:30}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+
+/* Cloud save (stats screen) */
+.cloud-box{display:grid;gap:8px;padding:12px}

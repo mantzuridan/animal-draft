@@ -5,7 +5,10 @@ const STATS_KEY="animalDraft.stats", ALBUM_KEY="animalDraft.album", ACH_KEY="ani
       WALLET_KEY="animalDraft.wallet", SKINS_KEY="animalDraft.skins";
 
 function read(key){ try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; } }
-function write(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
+// Every change to saved progress is reported to onChange (cloud.js uses it to back the progress up)
+let changed=()=>{};
+export const onChange = f => { changed=f; };
+function write(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} changed(); }
 
 /* ---------- Stats: {easy:{games,wins,streak,best}, hard:{...}} ---------- */
 export const emptyStats = () => ({games:0, wins:0, streak:0, best:0});
@@ -138,4 +141,11 @@ export function recordOnline(friendId, friendName, won){
 
 /* ---------- Reset ---------- */
 // Clears the whole account: stats, album, achievements, stars, skins and friend records (keeps the username)
-export function resetAccount(){ write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); try{ for(const k of [ALBUM_KEY,ACH_KEY,WALLET_KEY,SKINS_KEY,ONLINE_KEY]) localStorage.removeItem(k); }catch(e){} }
+export function resetAccount(){ try{ for(const k of [ALBUM_KEY,ACH_KEY,WALLET_KEY,SKINS_KEY,ONLINE_KEY]) localStorage.removeItem(k); }catch(e){} write(STATS_KEY, {easy:emptyStats(), hard:emptyStats()}); }
+
+/* ---------- Whole save, for the cloud backup ---------- */
+const SAVE_KEYS=[STATS_KEY,ALBUM_KEY,ACH_KEY,WALLET_KEY,SKINS_KEY,PROFILE_KEY,ONLINE_KEY];
+// Everything the player has, as one object {key: value}
+export function exportAll(){ const o={}; for(const k of SAVE_KEYS){ const v=read(k); if(v!=null) o[k]=v; } return o; }
+// Replaces everything with a saved object (keys missing from it are cleared). Does not report a change.
+export function importAll(o){ try{ for(const k of SAVE_KEYS){ if(o && o[k]!=null) localStorage.setItem(k, JSON.stringify(o[k])); else localStorage.removeItem(k); } }catch(e){} }

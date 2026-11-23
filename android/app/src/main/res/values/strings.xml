@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Animal Draft</string>
+    <string name="title_activity_main">Animal Draft</string>
+    <string name="package_name">io.github.mantzuridan.animaldraft</string>
+    <string name="custom_url_scheme">io.github.mantzuridan.animaldraft</string>
+</resources>
