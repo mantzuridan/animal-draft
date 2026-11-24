@@ -13,6 +13,8 @@ export const ipic = a => `<img class="ipic${pxClass(skinOf(a))}" src="${picSrc(a
 
 export const sleep = ms => new Promise(r=>setTimeout(r,ms));
 export const shortName = s => s.name.replace("100m ","");
+// A sport's picture (img/sports/<key>.webp). small=true: a little one inside a line of text
+export const sportPic = (s, small=false) => `<img class="${small?"sp-ic-s":"sp-ic"}" src="img/sports/${s.key}.webp" alt="" draggable="false">`;
 
 let toastT;
 export function toast(msg, ms=1500){ const t=$("toast"); t.innerHTML=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),ms); }

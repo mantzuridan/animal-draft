@@ -4,7 +4,7 @@ import * as E from "./engine.js";
 import * as Save from "./save.js";
 import * as Ach from "./achievements.js";
 import * as Sk from "./skins.js";
-import { $, pic, ipic, sleep, toast, show, shortName, startTimer, stopTimer, hideTimer, renderStars, onGoHome } from "./ui.js";
+import { $, pic, ipic, sleep, toast, show, shortName, sportPic, startTimer, stopTimer, hideTimer, renderStars, onGoHome } from "./ui.js";
 const TORTOISE_ID = E.ALL_ANIMALS.find(a=>a.name==="Tortoise").id;
 
 // The bot is the "hard" level; "easy" is only used for practice games, which don't count anywhere
@@ -222,7 +222,7 @@ export function renderAssign(){
   G.view.sports.forEach((sp,i)=>{
     const a=A.plan[i]; const d=document.createElement("div");
     d.className="sslot"+(A.selected && !a ? " target":"");
-    d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
+    d.innerHTML=`<div class="sicon">${sportPic(sp)}</div><div class="sname">${sp.name}</div>`+
       (a ? `<div class="who"><span class="e">${pic(a)}</span><span>${a.name}</span></div>` : `<div class="empty">empty</div>`);
     d.onclick=()=>{
       if(myPlan) return;   // plan already sent to the friend
@@ -265,7 +265,7 @@ export async function startResults(){
   for(const r of res.rows){
     const row=document.createElement("div"); row.className="res";
     const cell=(a,side)=>`<div class="a ${side} ${r.winner===side?"win":"lose"}"><span class="e">${side==="bot"?pic(a,botSkin(a)):pic(a)}</span><span class="n">${a.name}</span></div>`;
-    row.innerHTML = cell(r.you,"you") + `<div class="mid"><b>${r.sport.icon}</b>${r.sport.name}${r.close?'<br><span class="close">Close match!</span>':""}</div>` + cell(r.bot,"bot");
+    row.innerHTML = cell(r.you,"you") + `<div class="mid"><b>${sportPic(r.sport)}</b>${r.sport.name}${r.close?'<br><span class="close">Close match!</span>':""}</div>` + cell(r.bot,"bot");
     list.appendChild(row);
     await sleep(80); if(!alive(t)) return;
     row.classList.add("show");
@@ -317,14 +317,14 @@ let openGameSport=-1;
 function renderGameSports(){
   openGameSport=-1; $("draftSportHint").hidden=true;
   const sports=G.view.sports;
-  const html=sports.map((s,i)=>`<button type="button" data-slot="${i}"><b>${s.icon}</b>${shortName(s)}</button>`).join("");
+  const html=sports.map((s,i)=>`<button type="button" data-slot="${i}"><b>${sportPic(s)}</b>${shortName(s)}</button>`).join("");
   document.querySelectorAll(".game-sports").forEach(el=>{
     el.innerHTML=html;
     el.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       const i=+b.dataset.slot; openGameSport = openGameSport===i ? -1 : i;
       el.querySelectorAll("button").forEach(x=>x.classList.toggle("on", +x.dataset.slot===openGameSport));
       const h=$("draftSportHint"); h.hidden = openGameSport<0;
-      if(openGameSport>=0) h.innerHTML=`<b>${sports[i].icon} ${sports[i].name}:</b> ${sports[i].desc}`;
+      if(openGameSport>=0) h.innerHTML=`<b>${sportPic(sports[i],true)} ${sports[i].name}:</b> ${sports[i].desc}`;
     });
   });
 }

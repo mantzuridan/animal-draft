@@ -261,3 +261,12 @@ h2{margin:0;font-size:22px;font-weight:600}
 
 /* Cloud save (stats screen) */
 .cloud-box{display:grid;gap:8px;padding:12px}
+
+/* Sport pictures (img/sports/*.webp) in place of the sport emojis */
+.sp-ic{display:block;width:40px;height:40px;object-fit:contain;margin:0 auto;pointer-events:none}
+.sports-grid .sp-ic{width:46px;height:46px}
+.game-sports .sp-ic{width:36px;height:36px}
+.sslot .sicon .sp-ic{width:40px;height:40px}
+.sline .sicon .sp-ic{width:36px;height:36px}
+.res .mid .sp-ic{width:40px;height:40px;margin-bottom:2px}
+.sp-ic-s{display:inline-block;width:1.5em;height:1.5em;object-fit:contain;vertical-align:-.4em}

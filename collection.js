@@ -3,7 +3,7 @@ import * as E from "./engine.js";
 import * as Save from "./save.js";
 import * as Ach from "./achievements.js";
 import * as Sk from "./skins.js";
-import { $, pic, show } from "./ui.js";
+import { $, pic, show, sportPic } from "./ui.js";
 import { openShopAnimal } from "./shop.js";
 
 /* ---------- Stats ---------- */
@@ -47,7 +47,7 @@ export function showAlbumAnimal(a){
   if(seen) E.ALL_SPORTS.forEach((sp,i)=>{
     const r=e.sports[i]||{played:0,won:0};
     const d=document.createElement("div"); d.className="sline"+(r.won>0?" won":"");
-    d.innerHTML=`<div class="sicon">${sp.icon}</div><div class="sname">${sp.name}</div>`+
+    d.innerHTML=`<div class="sicon">${sportPic(sp)}</div><div class="sname">${sp.name}</div>`+
       `<div class="rec">${r.played ? `Won ${r.won} of ${r.played}` : "Not tried"}</div><div class="mark">${r.won>0?"🏅":""}</div>`;
     box.appendChild(d);
   });

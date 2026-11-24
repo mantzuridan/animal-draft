@@ -4,7 +4,7 @@
 import * as E from "./engine.js";
 import * as Save from "./save.js";
 import * as Sk from "./skins.js";
-import { $, picSrc, show, shortName, renderStars, goHome, openSheet, closeSheet, toast } from "./ui.js";
+import { $, picSrc, show, shortName, sportPic, renderStars, goHome, openSheet, closeSheet, toast } from "./ui.js";
 import * as Game from "./game.js";
 import { renderStats } from "./collection.js";
 import "./shop.js";
@@ -14,12 +14,12 @@ import * as Cloud from "./cloud.js";
 /* ---------- Sport descriptions on Home (tap a sport icon) ---------- */
 const SPORT_HINT_DEFAULT=$("sportHint").textContent;
 let openSport=-1;
-$("homeSports").innerHTML=E.ALL_SPORTS.map((s,i)=>`<button type="button" data-sport="${i}"><b>${s.icon}</b>${shortName(s)}</button>`).join("");
+$("homeSports").innerHTML=E.ALL_SPORTS.map((s,i)=>`<button type="button" data-sport="${i}"><b>${sportPic(s)}</b>${shortName(s)}</button>`).join("");
 $("homeSports").querySelectorAll("button").forEach(b=>b.onclick=()=>{
   const i=+b.dataset.sport; openSport = openSport===i ? -1 : i;
   $("homeSports").querySelectorAll("button").forEach(x=>x.classList.toggle("on", +x.dataset.sport===openSport));
   const h=$("sportHint"), sp=E.ALL_SPORTS[i];
-  h.innerHTML = openSport<0 ? SPORT_HINT_DEFAULT : `<b>${sp.icon} ${sp.name}:</b> ${sp.desc}`;
+  h.innerHTML = openSport<0 ? SPORT_HINT_DEFAULT : `<b>${sportPic(sp,true)} ${sp.name}:</b> ${sp.desc}`;
   h.classList.toggle("open", openSport>=0);
 });
 
