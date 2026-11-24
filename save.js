@@ -118,9 +118,12 @@ export const cleanName = s => (s||"").replace(/[<>&"'`]/g,"").replace(/\s+/g," "
 export function loadProfile(){
   const v=read(PROFILE_KEY)||{};
   if(!v.id){ v.id=Math.random().toString(36).slice(2,10)+Date.now().toString(36); write(PROFILE_KEY,v); }
-  return {id:v.id, name:cleanName(v.name)};
+  return {id:v.id, name:cleanName(v.name), tutorial:!!v.tutorial};
 }
 export function setName(name){ const p=loadProfile(); p.name=cleanName(name); write(PROFILE_KEY,p); return p; }
+// Whether the player finished or skipped the tutorial (kept in the profile, so it moves with cloud save)
+export const tutorialDone = () => !!(read(PROFILE_KEY)||{}).tutorial;
+export function setTutorialDone(){ loadProfile(); const v=read(PROFILE_KEY)||{}; if(v.tutorial) return; v.tutorial=true; write(PROFILE_KEY,v); }
 
 /* ---------- Online games vs friends: {games, wins, streak, best, friends:{[id]:{name, wins, losses}}} ---------- */
 const ONLINE_KEY="animalDraft.online";

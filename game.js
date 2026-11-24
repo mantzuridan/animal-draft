@@ -16,7 +16,13 @@ const alive = t => G && t===token;
 export const setLevel = l => { level=l; };
 export const getGame = () => G;
 export const getAssign = () => A;
-onGoHome(()=>{ token++; G=null; ON=null; stopTimer(); });
+onGoHome(()=>{ token++; G=null; ON=null; TUT=null; stopTimer(); });
+
+// Tutorial sample game: the hooks object from tutorial.js (fixed sports and animals, coach tips, no timers); null otherwise
+let TUT=null;
+const botMove = () => (TUT && TUT.bot(G)) || E.botAction(G);
+// Starts the timer, except in the tutorial (no time pressure there)
+const timer = (bar, wrap, secs, f) => TUT ? hideTimer(wrap) : startTimer(bar, wrap, secs, f);
 
 // Friend game: {seed, flip, friendSkins, friendName, friendId, send(msg)} from online.js; null vs the bot
 let ON=null;
@@ -28,16 +34,18 @@ const oppThe = () => ON ? FN() : "the bot";
 const h2h = () => { const f=Save.vsFriend(ON.friendId); return `You ${f.wins} – ${f.losses} ${FN()}`; };
 
 // online: start a game vs a friend instead of the bot
-export function newGame(online=null){
+export function newGame(online=null, tut=null){
   token++;
-  ON=online; friendQ=[]; waitingFriend=false; friendPlan=null; myPlan=null;
-  G = ON ? E.createGame({level:"hard", rng:E.mulberry32(ON.seed), online:true, flip:ON.flip}) : E.createGame({level});
+  ON=online; TUT=tut; friendQ=[]; waitingFriend=false; friendPlan=null; myPlan=null;
+  G = ON ? E.createGame({level:"hard", rng:E.mulberry32(ON.seed), online:true, flip:ON.flip})
+    : TUT ? E.createGame({level:"easy", sportIdx:TUT.sports}) : E.createGame({level});
+  if(TUT){ G.pool=TUT.pool(G.view); G.nextOpener="you"; }
   $("oppLabel").textContent=OPP(); $("resOppLabel").textContent=OPP();
   $("assignHint").textContent=`Tap an animal, then tap a sport. ${ON?FN():"The bot"} is choosing in secret too.`;
   $("againBtn").textContent="Play again"; $("againBtn").disabled=false;
   renderGameSports();
-  $("draftLevel").textContent = ON ? "👥 "+h2h() : level==="hard" ? "" : "🐣 Practice";
-  $("draftLevel").hidden = !ON && level==="hard";
+  $("draftLevel").textContent = ON ? "👥 "+h2h() : TUT ? TUT.label : level==="hard" ? "" : "🐣 Practice";
+  $("draftLevel").hidden = !ON && !TUT && level==="hard";
   show("draft");
   renderDraft();
   step();
@@ -80,21 +88,23 @@ async function step(){
       $("status").textContent = ev.side==="you" ? `${ON?FN()+"'s":"Bot's"} team is full — you get random animals!` : `Your team is full — ${oppThe()} gets random animals.`;
       showAnimal(ev.animal); renderDraft();
       await sleep(900); if(!alive(t)) return;
+      if(TUT){ await TUT.fill(G, ev); if(!alive(t)) return; }
       return step();
     }
     if(ev.type==="reveal"){
       showAnimal(ev.animal); renderDraft();
+      if(TUT && ev.mode!=="free"){ await sleep(400); if(!alive(t)) return; await TUT.reveal(G, ev); if(!alive(t)) return; }
       if(ev.mode==="auction"){ await sleep(500); if(!alive(t)) return; return takeTurn(); }
       if(ev.mode==="rich"){
         if(G.cur.rich==="you"){
           $("status").textContent=`${ON?FN()+" is":"Bot is"} out of coins. Buy it for 1, or it goes to ${oppThe()}.`;
           setControls("rich");
-          startTimer("timerBar","timer",E.RULES.bidSecs,()=>doAct("you", E.timeoutAction(G,"you")));
+          timer("timerBar","timer",E.RULES.bidSecs,()=>doAct("you", E.timeoutAction(G,"you")));
         } else {
           $("status").textContent=`You're out of coins — ${oppThe()} decides…`;
           if(ON) return waitFriend();
           await sleep(1300); if(!alive(t)) return;
-          doAct("bot", E.botAction(G));
+          doAct("bot", botMove());
         }
         return;
       }
@@ -103,7 +113,7 @@ async function step(){
       await sleep(1000); if(!alive(t)) return;
       continue;
     }
-    if(ev.type==="award"){ await showAward(ev); if(!alive(t)) return; return step(); }
+    if(ev.type==="award"){ await showAward(ev); if(!alive(t)) return; if(TUT){ await TUT.award(G, ev); if(!alive(t)) return; } return step(); }
   }
 }
 
@@ -129,7 +139,8 @@ function takeTurn(){
     $("chooseBtn").disabled = !o.canBid;
     $("passBtn").disabled = !o.canPass;
     pickVal=Math.min(o.minBid,o.maxBid); renderPick();
-    startTimer("timerBar","timer",E.RULES.bidSecs,()=>{
+    if(TUT) TUT.turn(G);
+    timer("timerBar","timer",E.RULES.bidSecs,()=>{
       const a=E.timeoutAction(G,"you");
       toast(a.type==="bid" ? "⏰ Time's up — auto bid "+a.amount : "⏰ Time's up — not enough coins, pass");
       doAct("you", a);
@@ -139,7 +150,7 @@ function takeTurn(){
     $("status").textContent = ON ? `👤 ${FN()} is thinking…` : "🤖 Bot is thinking…";
     if(ON) return waitFriend();
     const t=token;
-    setTimeout(()=>{ if(alive(t) && G.cur && G.cur.turn==="bot") doAct("bot", E.botAction(G)); }, 900+Math.random()*700);
+    setTimeout(()=>{ if(alive(t) && G.cur && G.cur.turn==="bot") doAct("bot", botMove()); }, 900+Math.random()*700);
   }
 }
 
@@ -152,7 +163,7 @@ async function doAct(side, action){
   stopTimer();
   const ev=events[0];
   if(ev.type==="bid") return takeTurn();
-  if(ev.type==="award"){ await showAward(ev); if(!alive(t)) return; step(); }
+  if(ev.type==="award"){ await showAward(ev); if(!alive(t)) return; if(TUT){ await TUT.award(G, ev); if(!alive(t)) return; } step(); }
 }
 
 /* ---------- Friend game: the friend's moves arrive from online.js ---------- */
@@ -195,7 +206,8 @@ function startAssign(){
   A={plan:Array(G.view.sports.length).fill(null), selected:null};
   show("assign"); renderAssign();
   const t=token;
-  startTimer("atimerBar","atimer",E.RULES.assignSecs,()=>{
+  if(TUT) TUT.assign();
+  timer("atimerBar","atimer",E.RULES.assignSecs,()=>{
     if(!alive(t)) return;
     A.plan=E.autoAssignPlayer(G, A.plan);
     renderAssign(); toast("⏰ Time's up — auto-assigned!");
@@ -246,6 +258,7 @@ export function renderAssign(){
   if(!tray.children.length) tray.innerHTML=`<div class="hint" style="align-self:center">All set! Tap a sport to swap.</div>`;
   $("confirmBtn").disabled = !!myPlan || A.plan.some(x=>!x);
   $("confirmBtn").textContent = myPlan ? `Waiting for ${FN()}…` : "Start the games!";
+  if(TUT) TUT.assignChange(A);
 }
 $("confirmBtn").onclick=()=>{ if(!A.plan.some(x=>!x)){ hideTimer("atimer"); finishAssign(); } };
 
@@ -279,7 +292,7 @@ export async function startResults(){
   $("banner").innerHTML = res.won ? "🏆 You win!" : ON ? `👤 ${FN()} wins` : "🤖 The bot wins";
   if(ON){ Save.recordOnline(ON.friendId, FN(), res.won);
     $("banner").innerHTML += `<div class="h2h">👥 ${h2h()}</div>`; }
-  if(!s && !ON) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🐣 Practice game, not counted</div>`;
+  if(!s && !ON) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">${TUT?"🎓 Sample game, not counted":"🐣 Practice game, not counted"}</div>`;
   if(res.won){ confetti(); if(s && s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   if(lvl==="hard"){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
@@ -298,8 +311,9 @@ export async function startResults(){
     renderStars();
     if(lines.length) $("banner").innerHTML += `<div class="album-news">${lines.join("<br>")}</div>`;
   }
-  $("resBtns").style.visibility="visible";
   G=null; // game finished
+  if(TUT){ const tut=TUT; TUT=null; return tut.results(res); }
+  $("resBtns").style.visibility="visible";
 }
 function setScore(y,b){ $("scoreLine").innerHTML=`<span class="y">${y}</span> – <span class="b">${b}</span>`; }
 function confetti(){

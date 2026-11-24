@@ -43,7 +43,7 @@
       <button class="btn ghost small3" id="achBtn">🏆 Achievements</button>
       <button class="btn ghost small3" id="albumBtn">🗂️ Album</button>
       <button class="btn ghost small3" id="statsBtn">📊 Stats</button>
-      <button class="btn ghost small3" id="rulesBtn">📖 Rules</button>
+      <button class="btn ghost small3" id="rulesBtn">🎓 How to play</button>
     </div>
     <button class="linkbtn" id="practiceBtn">🐣 Practice vs a beginner bot</button>
   </section>
@@ -194,6 +194,24 @@
     <div class="hint" id="adHint"></div>
   </section>
 
+  <!-- TUTORIAL: cards that explain the game, then a sample game (tutorial.js) -->
+  <section id="tutorial" class="screen">
+    <div class="topbar"><div class="title">🎓 How to play</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
+    <div class="card tut-card">
+      <div class="tut-art" id="tutArt"></div>
+      <h2 id="tutTitle"></h2>
+      <p id="tutText"></p>
+      <div class="tut-dots" id="tutDots"></div>
+    </div>
+    <div class="row tut-nav">
+      <button class="btn ghost grow" id="tutBack">‹ Back</button>
+      <button class="btn grow" id="tutNext">Next ›</button>
+    </div>
+    <button class="btn green" id="tutPlay" hidden>▶ Play a sample game</button>
+    <button class="btn ghost" id="tutSkip" hidden>Skip, I'm ready</button>
+    <button class="linkbtn" id="tutRules">📖 Read the full rules</button>
+  </section>
+
   <!-- RULES -->
   <section id="rules" class="screen">
     <div class="topbar"><div class="title">📖 How to play</div><button class="iconbtn" data-home aria-label="Back">✕</button></div>
@@ -211,9 +229,11 @@
       <p><b>🐣 Practice.</b> Want to warm up? Practice mode plays a beginner bot. Practice games don't count in your stats or album.</p>
       <p class="muted">Don't wait too long: after 20 seconds the game bids +1 for you.</p>
     </div>
+    <button class="btn green" id="rulesTut">🎓 Start the tutorial</button>
   </section>
 </div>
 <div class="toast" id="toast"></div>
+<div class="coach" id="coach" hidden><div class="coach-face">🦉</div><div class="coach-body"><div class="coach-text" id="coachText"></div><div class="coach-btns" id="coachBtns"></div></div></div>
 <div class="sheet" id="sheet"><div class="sheet-card" id="sheetCard"></div></div>
 
 <script type="module" src="app.js"></script>

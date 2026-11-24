@@ -10,6 +10,7 @@ import { renderStats } from "./collection.js";
 import "./shop.js";
 import * as Online from "./online.js";
 import * as Cloud from "./cloud.js";
+import { openTutorial, offerOnFirstLaunch } from "./tutorial.js";
 
 /* ---------- Sport descriptions on Home (tap a sport icon) ---------- */
 const SPORT_HINT_DEFAULT=$("sportHint").textContent;
@@ -29,7 +30,8 @@ $("practiceBtn").onclick=()=>{ Game.setLevel("easy"); Game.newGame(); };
 $("againBtn").onclick=()=> Game.inFriendGame() ? Online.playAgain() : Game.newGame();   // same mode as the game just played
 $("homeBtn").onclick=goHome;
 $("statsBtn").onclick=()=>{ renderStats(); show("stats"); };
-$("rulesBtn").onclick=()=>show("rules");
+$("rulesBtn").onclick=openTutorial;
+$("rulesTut").onclick=openTutorial;
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=goHome);
 document.querySelectorAll("[data-quit]").forEach(b=>b.onclick=()=>{ if(confirm("Quit this game? It won't count in your stats.")) goHome(); });
 $("resetBtn").onclick=()=>{ if(confirm("Reset your whole account (stats, album, achievements, stars and skins)? This can't be undone.")){ Save.resetAccount(); renderStats(); } };
@@ -79,3 +81,6 @@ $("cloudUseBtn").onclick=()=>{
 };
 // Back up the progress; if a newer copy came from the cloud, redraw what's on screen
 Cloud.start(()=>{ renderStars(); renderStats(); });
+
+// First visit: offer the tutorial
+setTimeout(()=>{ if(document.querySelector(".screen.on")?.id==="home") offerOnFirstLaunch(openSheet, closeSheet); }, 600);
