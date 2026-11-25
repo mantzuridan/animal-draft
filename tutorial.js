@@ -15,25 +15,25 @@ const pics = names => names.map(n=>`<span class="tut-a">${pic(byName(n))}</span>
 const CARDS = [
   { title:"Welcome to Animal Draft!",
     art:()=>`<div class="tut-row">${pics(["Cheetah","Dolphin","Rhino","Squirrel","Eagle"])}</div>`,
-    text:"Build a team of <b>5 animals</b> and beat the bot in a mini Olympics. It takes 2 minutes to learn." },
+    text:"Bid for animals at auction, build a team of <b>5</b> and win the animal Olympics against other players. It takes 2 minutes to learn." },
   { title:"5 sports every game",
     art:()=>`<div class="tut-row">${["sprint","swim","lift","climb","archery"].map(k=>sportPic(sportByKey(k))).join("")}</div>`,
     text:"There are 8 sports. Each game draws <b>5 of them</b> at random, and you see them at the top of the screen before the first animal comes up." },
   { title:"The draft: bid for animals",
     art:()=>`<div class="tut-row"><span class="tut-coin">20 🪙</span><span class="tut-a">${pic(byName("Horse"))}</span><span class="tut-coin bot">20 🪙</span></div>`,
-    text:"You and the bot each get <b>20 coins</b>. Animals come up one at a time and you take turns bidding. Bid <b>+1</b>, or <b>Choose…</b> a bigger amount. Whoever <b>passes</b> loses the animal, and the highest bidder pays. Each player needs 5 animals." },
+    text:"You and your opponent each get <b>20 coins</b>. Animals come up one at a time and you take turns bidding. Bid <b>+1</b>, or <b>Choose…</b> a bigger amount. Whoever <b>passes</b> loses the animal, and the highest bidder pays. Each player needs 5 animals." },
   { title:"Secret scores",
     art:()=>`<div class="tut-row"><span class="tut-a">${pic(byName("Cheetah"))}</span><span class="tut-arrow">→</span>${sportPic(sportByKey("sprint"))}<span class="tut-arrow">👍</span></div>`,
     text:"Every animal has a <b>secret score from 1 to 10</b> in each sport, based on real life. A cheetah is a great sprinter, a dolphin a great swimmer. Some animals will surprise you!" },
   { title:"Pick your athletes",
     art:()=>`<div class="tut-row"><span class="tut-a">${pic(byName("Squirrel"))}</span><span class="tut-arrow">→</span>${sportPic(sportByKey("climb"))}</div>`,
-    text:"When both teams have 5 animals, put <b>one animal in each sport</b>. The bot picks its athletes in secret at the same time." },
+    text:"When both teams have 5 animals, put <b>one animal in each sport</b>. Your opponent picks their athletes in secret at the same time." },
   { title:"The games",
     art:()=>`<div class="tut-row"><span class="tut-score">3 – 2</span><span class="tut-arrow">🏆</span></div>`,
-    text:"In each sport your animal faces the bot's. The <b>higher secret score wins</b>, and a tie is a coin flip. Win <b>3 of the 5 sports</b> to win the game, and earn ⭐ stars for skins." },
+    text:"In each sport your animal faces your opponent's. The <b>higher secret score wins</b>, and a tie is a coin flip. Win <b>3 of the 5 sports</b> to win the game, and earn ⭐ stars for skins." },
   { title:"Try a sample game",
     art:()=>`<div class="tut-row"><span class="tut-a">${pic(byName("Chimpanzee"))}</span></div>`,
-    text:"Play a practice game with tips along the way. No timer, and it doesn't count in your stats.",
+    text:"Play a sample game with tips along the way. No timer, and it doesn't count in your stats.",
     last:true },
 ];
 let card=0;
@@ -113,26 +113,26 @@ const TUT = {
     const n=ev.animal.name;
     if(n==="Cheetah" && !seen.intro){ seen.intro=1;
       await coach("These are this game's <b>5 sports</b>. Tap one any time to read what it needs.", {target:el("#draft .game-sports"), button:"Got it"});
-      await coach("You and the bot each have <b>20 coins</b> 🪙 to build a team of 5 animals.", {target:[$("sideYou"),$("sideBot")], button:"Got it"});
+      await coach("You and your opponent each have <b>20 coins</b> 🪙 to build a team of 5 animals.", {target:[$("sideYou"),$("sideBot")], button:"Got it"});
       await coach("Here comes the first animal: a <b>Cheetah</b>! It's the fastest animal on Earth, so it should be great at the 100m Sprint.", {target:$("aEmoji"), button:"Got it"});
     }
     if(ev.mode==="rich" && !seen.rich){ seen.rich=1;
       const you=G.cur.rich==="you";
-      await coach(you ? "The bot is <b>out of coins</b>! Now you decide: buy each animal for 1 coin, or let it go to the bot for free."
-                      : "You're <b>out of coins</b>, so the bot decides: it can buy each animal for 1 coin, or give it to you for free.", {button:"Got it"});
+      await coach(you ? "Your opponent is <b>out of coins</b>! Now you decide: buy each animal for 1 coin, or let it go to them for free."
+                      : "You're <b>out of coins</b>, so your opponent decides: they can buy each animal for 1 coin, or give it to you for free.", {button:"Got it"});
     }
   },
   // Your turn to bid: the first three animals are guided
   turn(G){
     const n=animalName(G), bid=G.cur.bid;
     if(n==="Cheetah" && bid===0) return coach("You open the bidding. Tap <b>+1</b> to bid 1 coin.", {target:$("plusBtn"), allow:[$("plusBtn")]});
-    if(n==="Cheetah") return coach(`The bot raised to <b>${bid}</b>. The Cheetah is worth it: tap <b>+1</b> again.`, {target:$("plusBtn"), allow:[$("plusBtn")]});
-    if(n==="Tortoise") return coach("A <b>Tortoise</b> is slow at almost everything. Don't waste coins on it: tap <b>Pass</b> and the bot gets it.", {target:$("passBtn"), allow:[$("passBtn")]});
+    if(n==="Cheetah") return coach(`Your opponent raised to <b>${bid}</b>. The Cheetah is worth it: tap <b>+1</b> again.`, {target:$("plusBtn"), allow:[$("plusBtn")]});
+    if(n==="Tortoise") return coach("A <b>Tortoise</b> is slow at almost everything. Don't waste coins on it: tap <b>Pass</b> and your opponent gets it.", {target:$("passBtn"), allow:[$("passBtn")]});
     if(n==="Dolphin") return coach("A <b>Dolphin</b> is the best swimmer. To bid more than +1 at once, tap <b>Choose…</b>", {target:$("chooseBtn"), allow:[$("chooseBtn")],
       onTap:()=>coach("Use <b>+</b> to set your bid (try 4), then tap <b>Bid</b>.", {target:$("pickBid"), allow:[$("plusStep"),$("minusStep"),$("pickBid")]})});
     hideCoach();
   },
-  // The bot's moves for the guided animals (null: the normal beginner bot decides)
+  // The opponent's moves for the guided animals (null: the beginner bot decides; it's only used here)
   bot(G){
     const n=animalName(G), c=G.cur;
     if(c.mode!=="auction") return null;
@@ -144,7 +144,7 @@ const TUT = {
   async award(G, ev){
     const n=ev.animal.name;
     if(n==="Cheetah") await coach(`You got the Cheetah for <b>${ev.price} coins</b>. You have ${G.you.coins} left, and spent coins don't come back, so spend wisely!`, {target:$("coinsYou"), button:"Got it"});
-    if(n==="Tortoise") await coach("The bot paid 1 coin for the Tortoise. Passing is a smart move when an animal won't help your team.", {button:"Got it"});
+    if(n==="Tortoise") await coach("Your opponent paid 1 coin for the Tortoise. Passing is a smart move when an animal won't help your team.", {button:"Got it"});
     if(n==="Dolphin"){
       await coach(`Nice! The Dolphin is yours for ${ev.price}. A big bid can scare the other side away.`, {button:"Got it"});
       await coach("Now finish the draft on your own until you have <b>5 animals</b>. Think about which sports each animal is good at, and keep some coins for later. (Real games give you 20 seconds per turn.)", {button:"Let's go!"});
@@ -152,12 +152,12 @@ const TUT = {
   },
   async fill(G, ev){
     if(seen.fill) return; seen.fill=1;
-    await coach(ev.side==="you" ? "The bot's team is full, so the rest of <b>your</b> team is filled with random animals for free."
-                                : "Your team is full! The bot's team is now filled with random animals for free.", {button:"Got it"});
+    await coach(ev.side==="you" ? "Your opponent's team is full, so the rest of <b>your</b> team is filled with random animals for free."
+                                : "Your team is full! Your opponent's team is now filled with random animals for free.", {button:"Got it"});
   },
   // Picking athletes: place the Cheetah with help, then the rest freely
   async assign(){
-    await coach("Your team is ready! Now <b>pick your athletes</b>: one animal for each sport. The bot is choosing in secret too.", {button:"Got it"});
+    await coach("Your team is ready! Now <b>pick your athletes</b>: one animal for each sport. Your opponent is choosing in secret too.", {button:"Got it"});
     assignStep=1; TUT.assignChange(Game.getAssign());
   },
   assignChange(A){
@@ -178,9 +178,9 @@ const TUT = {
   async results(res){
     hideCoach();
     await sleep(600);
-    await coach("In each sport your animal faces the bot's. The <b>higher secret score wins</b>, and a tie is a coin flip (<i>Close match!</i>). Win <b>3 of 5</b> to win the game.", {button:"Got it"});
+    await coach("In each sport your animal faces your opponent's. The <b>higher secret score wins</b>, and a tie is a coin flip (<i>Close match!</i>). Win <b>3 of 5</b> to win the game.", {button:"Got it"});
     Save.setTutorialDone();
-    const head = res.won ? "🏆 You won your first game!" : "So close! The bot won this one.";
+    const head = res.won ? "🏆 You won your first game!" : "So close! Your opponent won this one.";
     const i = await coach(`${head} You're ready for real games: they count for your stats, album and ⭐ stars.`,
       {buttons:[{label:"▶ Play for real", cls:"green"},{label:"Home", cls:"ghost"}]});
     TUT_ON=false;

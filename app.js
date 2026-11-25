@@ -15,18 +15,17 @@ import { openTutorial, offerOnFirstLaunch } from "./tutorial.js";
 /* ---------- Sport descriptions on Home (tap a sport icon) ---------- */
 const SPORT_HINT_DEFAULT=$("sportHint").textContent;
 let openSport=-1;
-$("homeSports").innerHTML=E.ALL_SPORTS.map((s,i)=>`<button type="button" data-sport="${i}"><b>${sportPic(s)}</b>${shortName(s)}</button>`).join("");
+$("homeSports").innerHTML=E.ALL_SPORTS.map((s,i)=>`<button type="button" data-sport="${i}"><b>${sportPic(s,false,true)}</b>${shortName(s)}</button>`).join("");
 $("homeSports").querySelectorAll("button").forEach(b=>b.onclick=()=>{
   const i=+b.dataset.sport; openSport = openSport===i ? -1 : i;
   $("homeSports").querySelectorAll("button").forEach(x=>x.classList.toggle("on", +x.dataset.sport===openSport));
   const h=$("sportHint"), sp=E.ALL_SPORTS[i];
-  h.innerHTML = openSport<0 ? SPORT_HINT_DEFAULT : `<b>${sportPic(sp,true)} ${sp.name}:</b> ${sp.desc}`;
+  h.innerHTML = openSport<0 ? SPORT_HINT_DEFAULT : `<b>${sportPic(sp,true,true)} ${sp.name}:</b> ${sp.desc}`;
   h.classList.toggle("open", openSport>=0);
 });
 
 /* ---------- Navigation ---------- */
 $("playBtn").onclick=()=>{ Game.setLevel("hard"); Game.newGame(); };
-$("practiceBtn").onclick=()=>{ Game.setLevel("easy"); Game.newGame(); };
 $("againBtn").onclick=()=> Game.inFriendGame() ? Online.playAgain() : Game.newGame();   // same mode as the game just played
 $("homeBtn").onclick=goHome;
 $("statsBtn").onclick=()=>{ renderStats(); show("stats"); };

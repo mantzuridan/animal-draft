@@ -264,7 +264,8 @@ h2{margin:0;font-size:22px;font-weight:600}
 
 /* Sport pictures (img/sports/*.webp) in place of the sport emojis */
 .sp-ic{display:block;width:40px;height:40px;object-fit:contain;margin:0 auto;pointer-events:none}
-.sports-grid .sp-ic{width:46px;height:46px}
+.sports-grid .sp-ic{width:46px;height:46px;transition:transform .2s cubic-bezier(.3,1.6,.6,1)}
+.sports-grid button.on .sp-ic{transform:scale(1.3)}
 .game-sports .sp-ic{width:36px;height:36px}
 .sslot .sicon .sp-ic{width:40px;height:40px}
 .sline .sicon .sp-ic{width:36px;height:36px}

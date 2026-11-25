@@ -5,12 +5,12 @@ import { ACHIEVEMENTS, tiersDone } from "./achievements.js";
 // Only ever ADD packs at the end; saved skins refer to pack ids.
 export const SKIN_PACKS = [
   { id:"base",  name:"Athletes", icon:"🏃", price:0,   packPrice:0,    dir:"img/animals" },
-  { id:"baby",  name:"Babies",   icon:"🍼", price:15,  packPrice:450,  dir:"img/skins/baby" },
-  { id:"pixel", name:"Pixel",    icon:"👾", price:100, packPrice:3000, dir:"img/skins/pixel", pixel:true },
-  { id:"clay",  name:"Clay",     icon:"🧱", price:100, packPrice:3000, dir:"img/skins/clay" },
-  { id:"origami", name:"Origami", icon:"🦢", price:100, packPrice:3000, dir:"img/skins/origami" },
-  { id:"business", name:"Business", icon:"💼", price:100, packPrice:3000, dir:"img/skins/business" },
-  { id:"pirate", name:"Pirates", icon:"🏴‍☠️", price:100, packPrice:3000, dir:"img/skins/pirate" },
+  { id:"baby",  name:"Babies",   icon:"🍼", price:250, packPrice:3000, dir:"img/skins/baby" },
+  { id:"pixel", name:"Pixel",    icon:"👾", price:250, packPrice:3000, dir:"img/skins/pixel", pixel:true },
+  { id:"clay",  name:"Clay",     icon:"🧱", price:250, packPrice:3000, dir:"img/skins/clay" },
+  { id:"origami", name:"Origami", icon:"🦢", price:250, packPrice:3000, dir:"img/skins/origami" },
+  { id:"business", name:"Business", icon:"💼", price:250, packPrice:3000, dir:"img/skins/business" },
+  { id:"pirate", name:"Pirates", icon:"🏴‍☠️", price:250, packPrice:3000, dir:"img/skins/pirate" },
   // Trophy skin: an animal can only buy it after winning `needSports` different sports (no whole-pack purchase)
   { id:"gold",  name:"Gold",     icon:"🏆", price:250, packPrice:0,    dir:"img/skins/gold", needSports:5 },
 ];
@@ -29,11 +29,11 @@ export const fileKey = a => { const k=a.name.toLowerCase().replace(/ /g,""); ret
 export const skinSrc = (a, packId) => `${packById(packId).dir}/${fileKey(a)}.webp`;
 
 // Price of the whole pack for someone who already owns `owned` of its `total` skins.
-// Up to 10 owned: the fixed pack price. Above that: exactly what the missing skins cost one by one.
+// Up to 10 owned: the fixed pack price. Above that: what the missing skins cost one by one, but never more than the pack price.
 export function packPriceFor(pack, owned, total){
   const missing = total - owned;
   if(missing<=0) return 0;
-  return owned<=10 ? pack.packPrice : missing*pack.price;
+  return owned<=10 ? pack.packPrice : Math.min(pack.packPrice, missing*pack.price);
 }
 
 // Stars for one counted game: 1 per sport won, +5 for winning the game, +5 more for a 5-0

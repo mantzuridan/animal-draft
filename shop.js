@@ -18,7 +18,7 @@ function buy(packId, ids, price){
   return true;
 }
 const SELL = () => Sk.SKIN_PACKS.filter(p=>p.price>0);
-// Mystery skin: a random skin from 100+ star skins the player doesn't own (Gold only where that animal unlocked it), each equally likely
+// Mystery skin: a random skin from the paid packs (100+ stars) the player doesn't own (Gold only where that animal unlocked it), each equally likely
 const MYSTERY_PRICE=80, MYSTERY_MIN=100;
 function mysteryPool(){
   const sk=Save.loadSkins(), alb=Save.loadAlbum(), pool=[];
@@ -149,7 +149,7 @@ $("wardShop").onclick=()=>openShop("wardrobe");
 function mysteryCard(){
   const n=mysteryPool().length;
   return `<div class="pack card mystery"><div class="pack-top"><b>🎁 Mystery skin</b><span class="muted">${n} possible</span></div>
-    <div class="muted small-note">A random skin you don't have yet, from the ${MYSTERY_MIN} ⭐ skins and any Gold you've unlocked. Every one is equally likely.</div>
+    <div class="muted small-note">A random skin you don't have yet, from every skin pack and any Gold you've unlocked. Every one is equally likely.</div>
     <div class="pack-btns one">${n ? `<button class="btn small" id="mysteryBtn">Open one · ${MYSTERY_PRICE} ⭐</button>` : `<button class="btn small" id="mysteryBtn" disabled>✓ Nothing left to win</button>`}</div></div>`;
 }
 function askMystery(){

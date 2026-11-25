@@ -7,7 +7,7 @@ import * as Sk from "./skins.js";
 import { $, pic, ipic, sleep, toast, show, shortName, sportPic, startTimer, stopTimer, hideTimer, renderStars, onGoHome } from "./ui.js";
 const TORTOISE_ID = E.ALL_ANIMALS.find(a=>a.name==="Tortoise").id;
 
-// The bot is the "hard" level; "easy" is only used for practice games, which don't count anywhere
+// The bot is the "hard" level; "easy" is only used by the tutorial's sample game, which doesn't count anywhere
 let level="hard";
 let G=null;      // the engine's game state
 let token=0;     // invalidates pending steps after quitting
@@ -28,8 +28,10 @@ const timer = (bar, wrap, secs, f) => TUT ? hideTimer(wrap) : startTimer(bar, wr
 let ON=null;
 let friendQ=[], waitingFriend=false, friendPlan=null, myPlan=null;
 const FN = () => ON ? ON.friendName||"Friend" : "";
-const OPP = () => ON ? "👤 "+FN() : "🤖 Bot";
-const oppThe = () => ON ? FN() : "the bot";
+// In the tutorial the opponent is shown as a player ("Opponent"), since real games are meant to be against people
+const oppName = () => ON ? FN() : TUT ? "Opponent" : "Bot";
+const OPP = () => ON ? "👤 "+FN() : TUT ? "👤 Opponent" : "🤖 Bot";
+const oppThe = () => ON ? FN() : TUT ? "your opponent" : "the bot";
 // Head-to-head score with this friend, from my side: "You 3 – 2 Dana"
 const h2h = () => { const f=Save.vsFriend(ON.friendId); return `You ${f.wins} – ${f.losses} ${FN()}`; };
 
@@ -41,10 +43,10 @@ export function newGame(online=null, tut=null){
     : TUT ? E.createGame({level:"easy", sportIdx:TUT.sports}) : E.createGame({level});
   if(TUT){ G.pool=TUT.pool(G.view); G.nextOpener="you"; }
   $("oppLabel").textContent=OPP(); $("resOppLabel").textContent=OPP();
-  $("assignHint").textContent=`Tap an animal, then tap a sport. ${ON?FN():"The bot"} is choosing in secret too.`;
+  $("assignHint").textContent=`Tap an animal, then tap a sport. ${ON?FN():TUT?"Your opponent":"The bot"} is choosing in secret too.`;
   $("againBtn").textContent="Play again"; $("againBtn").disabled=false;
   renderGameSports();
-  $("draftLevel").textContent = ON ? "👥 "+h2h() : TUT ? TUT.label : level==="hard" ? "" : "🐣 Practice";
+  $("draftLevel").textContent = ON ? "👥 "+h2h() : TUT ? TUT.label : "";
   $("draftLevel").hidden = !ON && !TUT && level==="hard";
   show("draft");
   renderDraft();
@@ -85,7 +87,7 @@ async function step(){
   for(const ev of events){
     if(ev.type==="draftDone") return startAssign();
     if(ev.type==="fill"){
-      $("status").textContent = ev.side==="you" ? `${ON?FN()+"'s":"Bot's"} team is full — you get random animals!` : `Your team is full — ${oppThe()} gets random animals.`;
+      $("status").textContent = ev.side==="you" ? `${oppName()}'s team is full — you get random animals!` : `Your team is full — ${oppThe()} gets random animals.`;
       showAnimal(ev.animal); renderDraft();
       await sleep(900); if(!alive(t)) return;
       if(TUT){ await TUT.fill(G, ev); if(!alive(t)) return; }
@@ -97,7 +99,7 @@ async function step(){
       if(ev.mode==="auction"){ await sleep(500); if(!alive(t)) return; return takeTurn(); }
       if(ev.mode==="rich"){
         if(G.cur.rich==="you"){
-          $("status").textContent=`${ON?FN()+" is":"Bot is"} out of coins. Buy it for 1, or it goes to ${oppThe()}.`;
+          $("status").textContent=`${oppName()} is out of coins. Buy it for 1, or it goes to ${oppThe()}.`;
           setControls("rich");
           timer("timerBar","timer",E.RULES.bidSecs,()=>doAct("you", E.timeoutAction(G,"you")));
         } else {
@@ -147,7 +149,7 @@ function takeTurn(){
     });
   } else {
     setControls("none"); hideTimer("timer");
-    $("status").textContent = ON ? `👤 ${FN()} is thinking…` : "🤖 Bot is thinking…";
+    $("status").textContent = `${OPP()} is thinking…`;
     if(ON) return waitFriend();
     const t=token;
     setTimeout(()=>{ if(alive(t) && G.cur && G.cur.turn==="bot") doAct("bot", botMove()); }, 900+Math.random()*700);
@@ -289,10 +291,10 @@ export async function startResults(){
   // Friend games count for stars, the album and the Social / Rival achievements only (not the bot stats or other achievements)
   const factsBefore = lvl==="hard" ? Save.loadFacts() : null;
   const s = lvl==="hard" && !ON ? Save.recordGame(lvl, res.won) : null;
-  $("banner").innerHTML = res.won ? "🏆 You win!" : ON ? `👤 ${FN()} wins` : "🤖 The bot wins";
+  $("banner").innerHTML = res.won ? "🏆 You win!" : ON||TUT ? `${OPP()} wins` : "🤖 The bot wins";
   if(ON){ Save.recordOnline(ON.friendId, FN(), res.won);
     $("banner").innerHTML += `<div class="h2h">👥 ${h2h()}</div>`; }
-  if(!s && !ON) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">${TUT?"🎓 Sample game, not counted":"🐣 Practice game, not counted"}</div>`;
+  if(!s && !ON) $("banner").innerHTML += `<div class="muted" style="font-size:15px;font-weight:500">🎓 Sample game, not counted</div>`;
   if(res.won){ confetti(); if(s && s.streak>1) $("banner").innerHTML += `<div class="muted" style="font-size:16px;font-weight:500">🔥 ${s.streak} wins in a row</div>`; }
   if(lvl==="hard"){
     const news=Save.recordAlbum(res.rows, res.won), lines=[];
